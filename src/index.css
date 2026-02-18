@@ -1,0 +1,30 @@
+@font-face {
+  font-family: "Poppins";
+  src: url("./assets/Poppins.ttf");
+}
+
+:root {
+  --primary-bg-theme: #fbb90c;
+}
+
+* {
+  font-family: "Poppins";
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+html,
+body {
+  background: ivory;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
