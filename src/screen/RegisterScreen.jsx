@@ -1,10 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { IoClose } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
 function RegisterScreen() {
   const navigationObj = useNavigate();
+
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const isValid = fullName.trim() !== "" && phone.trim() !== "";
+
+  const handleRegister = () => {
+    if (!isValid) return;
+
+    // You can generate virtual ID here
+    console.log("Registering:", { fullName, phone });
+  };
 
   return (
     <Container>
@@ -17,18 +29,32 @@ function RegisterScreen() {
         <ContentContainer>
           <FormContainer>
             <FormTitle>Full Name</FormTitle>
-            <FormInput placeholder="Enter your full name" />
+            <FormInput
+              placeholder="Enter your full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           </FormContainer>
 
           <FormContainer>
             <FormTitle>Phone No</FormTitle>
-            <FormInput placeholder="Enter your phone no" />
+            <FormInput
+              placeholder="Enter your phone number"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
           </FormContainer>
-          <ButtonContainer>
-            <Info>A virtual serial id will be created for your device</Info>
-            <Button>Register Device</Button>
-          </ButtonContainer>
         </ContentContainer>
+
+        <ButtonContainer>
+          <Info>
+            A virtual serial ID will be created and linked to this device.
+          </Info>
+          <Button disabled={!isValid} onClick={handleRegister}>
+            Register Device
+          </Button>
+        </ButtonContainer>
       </SubContainer>
     </Container>
   );
@@ -38,32 +64,18 @@ export default RegisterScreen;
 
 /* ---------------- Layout ---------------- */
 
-const ButtonContainer = styled.div`
-  margin-top: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  text-align: center;
-  gap: 10px;
-`;
-const Info = styled.p`
-  font-size: 13px;
-`;
-
 const Container = styled.div`
   min-height: 100vh;
   width: 100%;
-  background: #fff;
+  background: #ffffff;
   display: flex;
 `;
 
 const SubContainer = styled.div`
   width: 100%;
-  background: #fff;
-  padding: 20px;
+  padding: 25px;
   display: flex;
-  margin-top: 40px;
+  margin-top: 30px;
   flex-direction: column;
 `;
 
@@ -75,19 +87,20 @@ const HeaderContainer = styled.div`
 `;
 
 const Title = styled.h3`
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 `;
 
 const CloseIcon = styled(IoClose)`
-  font-size: 30px;
+  font-size: 28px;
   cursor: pointer;
 `;
 
 const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
+  margin-top: -20px;
 `;
 
 const FormContainer = styled.div`
@@ -95,41 +108,59 @@ const FormContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: 15px;
-  border-radius: 15px;
-  background: whitesmoke;
+  border-radius: 18px;
+  background: #f4f4f4;
 `;
 
 const FormTitle = styled.h3`
-  font-size: 15px;
+  font-size: 13px;
   margin-bottom: 8px;
   font-weight: 600;
 `;
 
 const FormInput = styled.input`
-  padding: 20px 16px;
+  padding: 16px;
   border-radius: 12px;
-  height: 30px;
   border: 1px solid transparent;
   font-size: 15px;
-  margin-bottom: 20px;
   outline: none;
-  transition: all 0.2s ease;
   background: transparent;
 `;
 
+const ButtonContainer = styled.div`
+  margin-top: auto; /* pushes button to bottom naturally */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+`;
+
+const Info = styled.p`
+  font-size: 13px;
+  color: #555;
+`;
+
 const Button = styled.button`
-  margin-top: 10px;
-  padding: 15px;
+  padding: 18px;
   border-radius: 100px;
   border: none;
   width: 100%;
   background: var(--primary-bg-theme);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  padding: 20px;
-  &:active {
+
+  &:hover {
+    transform: scale(0.9);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:active:not(:disabled) {
     transform: scale(0.97);
   }
 `;
