@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import HistoryModal from "../components/HistoryModal";
 import CheckingModal from "../components/CheckingModal";
 import SuccessComponent from "../components/SuccessComponent";
+import Notification from "../components/Notification.jsx";
 
 function MainScreen() {
   const location = useLocation();
@@ -18,6 +19,7 @@ function MainScreen() {
   const [success, setSuccess] = useState(false);
   const videoRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
+  const [notification, setNotification] = useState(false);
 
   useEffect(() => {
     if (!startCameraOnLoad) return;
@@ -97,12 +99,26 @@ function MainScreen() {
         setSuccess(false);
       }, 3000);
     } else {
-      alert("No QR code detected, try again!");
+      setNotification(true);
     }
+  }
+
+  //  function to remove notification badge ;
+  function closeNotificationBadge() {
+    setNotification(false);
   }
 
   return (
     <>
+      {notification && (
+        <Notification
+          title="Notification"
+          description="No Code Detected, try again !"
+          onClose={() => {
+            closeNotificationBadge();
+          }}
+        />
+      )}
       {success && <SuccessComponent msg="Welcome to office !" />}
       {openBottomSheet && (
         <HistoryModal
