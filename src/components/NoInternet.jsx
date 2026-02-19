@@ -56,6 +56,7 @@ const Content = styled.div`
   color: white;
 `;
 
+//
 const WifiIcon = styled(MdOutlineSignalWifiConnectedNoInternet4)`
   font-size: 80px;
   margin-bottom: 20px;
