@@ -12,6 +12,10 @@
   margin: 0;
   padding: 0;
   overflow: hidden;
+  touch-action: manipulation;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE */
+  user-select: none;
 }
 
 html,
