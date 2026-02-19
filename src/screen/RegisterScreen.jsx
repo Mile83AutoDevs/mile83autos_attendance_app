@@ -152,6 +152,7 @@ const Button = styled.button`
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  color: black;
   transition: all 0.2s ease;
 
   &:hover {
