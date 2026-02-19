@@ -1,7 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import { IoClose } from "react-icons/io5";
 import { useState, useRef } from "react";
-import CheckinComponent from "./checkinComponent";
+import CheckinComponent from "./CheckinComponent";
 
 function CheckingModal({ onExit }) {
   const [position, setPosition] = useState("checkin");
