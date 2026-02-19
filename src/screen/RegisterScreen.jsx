@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import styled from "styled-components";
 import { IoClose } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
+import { PiSpinner } from "react-icons/pi";
+import styled, { keyframes } from "styled-components";
+import SuccessComponent from "../components/SuccessComponent";
 
 function RegisterScreen() {
   const navigationObj = useNavigate();
-
+  const [load, setLoading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const isValid = fullName.trim() !== "" && phone.trim() !== "";
 
@@ -16,53 +19,76 @@ function RegisterScreen() {
 
     // You can generate virtual ID here
     console.log("Registering:", { fullName, phone });
+    setSuccess(true);
+    setLoading(true);
+    const id = setTimeout(() => {
+      setSuccess(false);
+      setLoading(false);
+    }, 5 * 1000);
+    clearTimeout(id);
   };
 
   return (
-    <Container>
-      <SubContainer>
-        <HeaderContainer>
-          <Title>Create Account</Title>
-          <CloseIcon onClick={() => navigationObj(-1)} />
-        </HeaderContainer>
+    <>
+      {success == true && <SuccessComponent />}
+      <Container>
+        <SubContainer>
+          <HeaderContainer>
+            <Title>Create Account</Title>
+            <CloseIcon onClick={() => navigationObj(-1)} />
+          </HeaderContainer>
 
-        <ContentContainer>
-          <FormContainer>
-            <FormTitle>Full Name</FormTitle>
-            <FormInput
-              placeholder="Enter your full name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-          </FormContainer>
+          <ContentContainer>
+            <FormContainer>
+              <FormTitle>Full Name</FormTitle>
+              <FormInput
+                placeholder="Enter your full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </FormContainer>
 
-          <FormContainer>
-            <FormTitle>Phone No</FormTitle>
-            <FormInput
-              placeholder="Enter your phone number"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </FormContainer>
-        </ContentContainer>
+            <FormContainer>
+              <FormTitle>Phone No</FormTitle>
+              <FormInput
+                placeholder="Enter your phone number"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </FormContainer>
+          </ContentContainer>
 
-        <ButtonContainer>
-          <Info>
-            A virtual serial ID will be created and linked to this device.
-          </Info>
-          <Button disabled={!isValid} onClick={handleRegister}>
-            Register Device
-          </Button>
-        </ButtonContainer>
-      </SubContainer>
-    </Container>
+          <ButtonContainer>
+            <Info>
+              A virtual serial ID will be created and linked to this device.
+            </Info>
+            <Button disabled={!isValid} onClick={handleRegister}>
+              {load == true ? <SpinnerIcon /> : "Register Device"}
+            </Button>
+          </ButtonContainer>
+        </SubContainer>
+      </Container>
+    </>
   );
 }
 
 export default RegisterScreen;
 
 /* ---------------- Layout ---------------- */
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const SpinnerIcon = styled(PiSpinner)`
+  font-size: 18px;
+  animation: ${spin} 0.8s linear infinite;
+`;
 
 const Container = styled.div`
   min-height: 100vh;
