@@ -1,15 +1,17 @@
 import React, { useRef, useEffect, useState } from "react";
-import { PiStarFourFill } from "react-icons/pi";
 import { BsFillPeopleFill } from "react-icons/bs";
 import { LuScanLine } from "react-icons/lu";
 import { IoEyeSharp } from "react-icons/io5";
 import styled, { keyframes } from "styled-components";
+import { MdHistory } from "react-icons/md";
 import jsQR from "jsqr";
 import { useLocation } from "react-router-dom";
+import HistoryModal from "../components/HistoryModal";
 
 function MainScreen() {
   const location = useLocation();
   const startCameraOnLoad = location.state?.startCamera || false;
+  const [openBottomSheet, setBottomSheetVisibility] = useState(false);
 
   const videoRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
@@ -78,23 +80,36 @@ function MainScreen() {
   }, [startCameraOnLoad]);
 
   return (
-    <Container>
-      <CameraContainer>
-        <VideoCamera ref={videoRef} />
-        <EyeIcon />
-        <ShimmerOverlay />
-      </CameraContainer>
+    <>
+      {openBottomSheet && (
+        <HistoryModal
+          onClose={() => {
+            setBottomSheetVisibility(false);
+          }}
+        />
+      )}
+      <Container>
+        <CameraContainer>
+          <VideoCamera ref={videoRef} />
+          <EyeIcon />
+          <ShimmerOverlay />
+        </CameraContainer>
 
-      <ControlPanelContainer>
-        <FourStar />
-        <ScanButton>
-          <ScanIcon />
-        </ScanButton>
-        <PeopleIcon />
-      </ControlPanelContainer>
+        <ControlPanelContainer>
+          <HistoryIcon
+            onClick={() => {
+              setBottomSheetVisibility(true);
+            }}
+          />
+          <ScanButton>
+            <ScanIcon />
+          </ScanButton>
+          <PeopleIcon />
+        </ControlPanelContainer>
 
-      {qrCode && <QrResult>Scanned: {qrCode}</QrResult>}
-    </Container>
+        {qrCode && <QrResult>Scanned: {qrCode}</QrResult>}
+      </Container>
+    </>
   );
 }
 
@@ -156,12 +171,22 @@ const ControlPanelContainer = styled.div`
   min-height: 80px;
 `;
 
-const FourStar = styled(PiStarFourFill)`
-  font-size: 30px;
-`;
 const PeopleIcon = styled(BsFillPeopleFill)`
   font-size: 30px;
+  transition: linear, 100ms;
+  &:hover {
+    transform: scale(0.9);
+  }
 `;
+
+const HistoryIcon = styled(MdHistory)`
+  font-size: 30px;
+  transition: linear, 100ms;
+  &:hover {
+    transform: scale(0.9);
+  }
+`;
+
 const ScanIcon = styled(LuScanLine)`
   font-size: 30px;
   color: ivory;
@@ -175,6 +200,10 @@ const ScanButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: linear, 100ms;
+  &:hover {
+    transform: scale(0.9);
+  }
 `;
 
 const eyeBlink = keyframes`

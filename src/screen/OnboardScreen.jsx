@@ -101,7 +101,6 @@ const Button = styled.button`
   font-size: 13px;
   cursor: pointer;
   transition: all 0.1s ease-in-out;
-
   &:hover {
     transform: scale(1.05);
   }
@@ -111,7 +110,7 @@ const BrandText = styled.p`
   font-size: 12px;
   opacity: 0.9;
   font-weight: 400;
-  margin-top: 60px;
+  margin-top: 5px;
 `;
 
 // iOS requires it to be in DOM, hidden via height/opacity, NOT display:none
