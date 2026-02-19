@@ -71,7 +71,6 @@ function MainScreen() {
     };
 
     startCamera();
-
     return () => {
       cancelAnimationFrame(animationFrameId);
       if (videoRef.current?.srcObject) {
@@ -79,6 +78,24 @@ function MainScreen() {
       }
     };
   }, [startCameraOnLoad]);
+
+  //  function to scan qrcode ;
+  function scanQRCode() {
+    if (!videoRef.current) return;
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, canvas.width, canvas.height);
+    if (code) {
+      setQrCode(code.data);
+      alert(code.data);
+    } else {
+      alert("No QR code detected, try again!");
+    }
+  }
 
   return (
     <>
@@ -109,7 +126,11 @@ function MainScreen() {
               setBottomSheetVisibility(true);
             }}
           />
-          <ScanButton>
+          <ScanButton
+            onClick={() => {
+              scanQRCode();
+            }}
+          >
             <ScanIcon />
           </ScanButton>
           <PeopleIcon
