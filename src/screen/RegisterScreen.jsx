@@ -24,7 +24,7 @@ function RegisterScreen() {
     const id = setTimeout(() => {
       setSuccess(false);
       setLoading(false);
-    }, 5 * 1000);
+    }, 3000);
     clearTimeout(id);
   };
 
