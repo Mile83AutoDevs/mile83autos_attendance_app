@@ -17,20 +17,19 @@ function RegisterScreen() {
   const handleRegister = () => {
     if (!isValid) return;
 
-    // You can generate virtual ID here
     console.log("Registering:", { fullName, phone });
     setSuccess(true);
     setLoading(true);
-    const id = setTimeout(() => {
+
+    setTimeout(() => {
       setSuccess(false);
       setLoading(false);
-    }, 3000);
-    clearTimeout(id);
+    }, 2000);
   };
 
   return (
     <>
-      {success == true && <SuccessComponent />}
+      {success === true && <SuccessComponent />}
       <Container>
         <SubContainer>
           <HeaderContainer>
@@ -64,7 +63,7 @@ function RegisterScreen() {
               A virtual serial ID will be created and linked to this device.
             </Info>
             <Button disabled={!isValid} onClick={handleRegister}>
-              {load == true ? <SpinnerIcon /> : "Register Device"}
+              {load === true ? <SpinnerIcon /> : "Register Device"}
             </Button>
           </ButtonContainer>
         </SubContainer>
@@ -75,14 +74,10 @@ function RegisterScreen() {
 
 export default RegisterScreen;
 
-/* ---------------- Layout ---------------- */
+/* ---------------- Spinner Animation ---------------- */
 const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const SpinnerIcon = styled(PiSpinner)`
@@ -90,6 +85,7 @@ const SpinnerIcon = styled(PiSpinner)`
   animation: ${spin} 0.8s linear infinite;
 `;
 
+/* ---------------- Layout ---------------- */
 const Container = styled.div`
   min-height: 100vh;
   width: 100%;
@@ -181,7 +177,7 @@ const Button = styled.button`
   color: black;
   transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: scale(0.9);
   }
 
