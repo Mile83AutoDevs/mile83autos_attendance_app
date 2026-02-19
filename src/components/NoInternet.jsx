@@ -40,12 +40,15 @@ const fadeIn = keyframes`
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.6); /* slightly lighter for blur effect */
+  backdrop-filter: blur(6px); /* this adds the blur */
+  -webkit-backdrop-filter: blur(6px); /* Safari support */
   display: flex;
+  height: 100vh;
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  animation: ${fadeIn} 0.3s ease-in-out;
+  animation: ${fadeIn} 0.1s ease-in-out;
 `;
 
 const Content = styled.div`
@@ -60,13 +63,13 @@ const WifiIcon = styled(MdOutlineSignalWifiConnectedNoInternet4)`
 `;
 
 const Title = styled.h2`
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 700;
   margin-bottom: 10px;
 `;
 
 const Message = styled.p`
-  font-size: 16px;
+  font-size: 12px;
   opacity: 0.8;
 `;
 
