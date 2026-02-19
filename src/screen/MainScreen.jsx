@@ -21,6 +21,12 @@ function MainScreen() {
   const [qrCode, setQrCode] = useState("");
   const [notification, setNotification] = useState(false);
 
+  // define params ;
+  const static_office_coord = {
+    longitude: "6.47705",
+    latitude: "3.29046",
+  };
+
   useEffect(() => {
     if (!startCameraOnLoad) return;
     let animationFrameId;
@@ -81,6 +87,28 @@ function MainScreen() {
       }
     };
   }, [startCameraOnLoad]);
+
+  //  function to get User coordinates ;
+  const getUserCoordinates = () => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log(position);
+          alert(position);
+        },
+        (error) => {
+          console.log(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        },
+      );
+    } else {
+      console.log("geolocation not supported");
+    }
+  };
 
   //  function to scan qrcode ;
   function scanQRCode() {
@@ -150,6 +178,7 @@ function MainScreen() {
           <ScanButton
             onClick={() => {
               scanQRCode();
+              getUserCoordinates();
             }}
           >
             <ScanIcon />
