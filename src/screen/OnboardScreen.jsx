@@ -21,7 +21,6 @@ function OnboardScreen() {
         await videoRef.current.play();
       }
       navigateObj("/app", { state: { startCamera: true } });
-      localStorage.removeItem("onBoarded");
     } catch (err) {
       console.error("Camera error:", err);
       alert("Camera access is required to continue.");
