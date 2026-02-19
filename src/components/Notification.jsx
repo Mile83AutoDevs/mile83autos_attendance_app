@@ -159,6 +159,7 @@ const TextContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 3px;
+  color: black;
 `;
 
 const TextTitle = styled.h3`
