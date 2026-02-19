@@ -100,6 +100,9 @@ const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 20px;
+  justify-content: center;
+  align-items: center;
+  padding: 5px;
   margin-top: -20px;
 `;
 
@@ -128,7 +131,7 @@ const FormInput = styled.input`
 `;
 
 const ButtonContainer = styled.div`
-  margin-top: auto; /* pushes button to bottom naturally */
+  margin-top: 50px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -136,7 +139,7 @@ const ButtonContainer = styled.div`
 `;
 
 const Info = styled.p`
-  font-size: 13px;
+  font-size: 11px;
   color: #555;
 `;
 
