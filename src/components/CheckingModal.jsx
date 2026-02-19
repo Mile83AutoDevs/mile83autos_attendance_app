@@ -116,6 +116,7 @@ function CheckingModal({ onExit }) {
               <CheckinComponent />
               <CheckinComponent />
             </ContentContainer>
+            // added content container
           )}
         </BodyContainer>
       </SubContainer>
