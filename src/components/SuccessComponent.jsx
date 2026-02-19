@@ -1,7 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import { IoIosCheckmarkCircle } from "react-icons/io";
 
-function SuccessComponent() {
+function SuccessComponent({ msg }) {
   return (
     <Container>
       <IconContainer>
@@ -9,7 +9,7 @@ function SuccessComponent() {
         <RippleCircle className="ripple2" />
         <RippleCircle className="ripple3" />
         <CheckmarkIcon />
-        <Message>Success!</Message>
+        <Message>{msg}</Message>
       </IconContainer>
     </Container>
   );

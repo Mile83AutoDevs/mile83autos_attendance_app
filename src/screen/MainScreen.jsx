@@ -8,13 +8,14 @@ import jsQR from "jsqr";
 import { useLocation } from "react-router-dom";
 import HistoryModal from "../components/HistoryModal";
 import CheckingModal from "../components/CheckingModal";
+import SuccessComponent from "../components/SuccessComponent";
 
 function MainScreen() {
   const location = useLocation();
   const startCameraOnLoad = location.state?.startCamera || false;
   const [openBottomSheet, setBottomSheetVisibility] = useState(false);
   const [openCheckinSheet, setCheckinSheetVisibility] = useState(false);
-
+  const [success, setSuccess] = useState(false);
   const videoRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
 
@@ -91,7 +92,10 @@ function MainScreen() {
     const code = jsQR(imageData.data, canvas.width, canvas.height);
     if (code) {
       setQrCode(code.data);
-      alert(code.data);
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+      }, 3000);
     } else {
       alert("No QR code detected, try again!");
     }
@@ -99,6 +103,7 @@ function MainScreen() {
 
   return (
     <>
+      {success && <SuccessComponent msg="Welcome to office !" />}
       {openBottomSheet && (
         <HistoryModal
           onClose={() => {

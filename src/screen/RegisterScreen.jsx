@@ -29,7 +29,7 @@ function RegisterScreen() {
 
   return (
     <>
-      {success === true && <SuccessComponent />}
+      {success === true && <SuccessComponent msg="Successful!" />}
       <Container>
         <SubContainer>
           <HeaderContainer>
