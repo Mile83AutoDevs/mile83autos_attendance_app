@@ -1,6 +1,7 @@
 import styled, { keyframes } from "styled-components";
 import { IoClose } from "react-icons/io5";
 import { useState, useRef } from "react";
+import CheckinComponent from "./checkinComponent";
 
 function CheckingModal({ onExit }) {
   const [position, setPosition] = useState("checkin");
@@ -81,6 +82,41 @@ function CheckingModal({ onExit }) {
               Checkout
             </NavButton>
           </HeaderNavigatorContainer>
+          {position == "checkin" ? (
+            <ContentContainer>
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+            </ContentContainer>
+          ) : (
+            <ContentContainer>
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+              <CheckinComponent />
+            </ContentContainer>
+          )}
         </BodyContainer>
       </SubContainer>
     </Container>
@@ -90,6 +126,13 @@ function CheckingModal({ onExit }) {
 export default CheckingModal;
 
 /* ---------------- Animations ---------------- */
+
+const ContentContainer = styled.div`
+  display: flex;
+  padding-top: 25px;
+  flex-direction: column;
+  gap: 25px;
+`;
 
 const slideUp = keyframes`
   from { transform: translateY(100%); }
@@ -150,6 +193,7 @@ const Title = styled.h3`
 const BodyContainer = styled.div`
   flex: 1;
   overflow-y: auto;
+  margin-top: -12px;
 `;
 
 /* ---------------- Toggle ---------------- */
@@ -186,7 +230,7 @@ const NavButton = styled.button`
   background: transparent;
   border: none;
   border-radius: 100px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   z-index: 2;
@@ -194,3 +238,5 @@ const NavButton = styled.button`
   transition: color 0.3s ease;
   text-align: center;
 `;
+
+const RevealContainer = styled.div``;
