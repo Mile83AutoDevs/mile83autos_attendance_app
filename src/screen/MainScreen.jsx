@@ -20,11 +20,13 @@ function MainScreen() {
   const videoRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
   const [notification, setNotification] = useState(false);
+  const [userCoods, setUserCoods] = useState({});
 
   // define params ;
   const static_office_coord = {
     longitude: "6.47705",
     latitude: "3.29046",
+    allowed_radius: 50,
   };
 
   useEffect(() => {
@@ -88,13 +90,31 @@ function MainScreen() {
     };
   }, [startCameraOnLoad]);
 
+  //  function to calculate distance
+  const distanceInMeters = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000; // radius of Earth in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+  //  =================================
+
   //  function to get User coordinates ;
   const getUserCoordinates = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          console.log(position);
-          alert(position);
+          const params = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setUserCoods(params);
         },
         (error) => {
           console.log(error);
@@ -121,11 +141,29 @@ function MainScreen() {
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, canvas.width, canvas.height);
     if (code) {
-      setQrCode(code.data);
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
+      if (userCoods) {
+        const distance = distanceInMeters(
+          static_office_coord.latitude,
+          static_office_coord.longitude,
+          userCoods.latitude,
+          userCoods.longitude,
+        );
+        if (distance <= static_office_coord.allowed_radius) {
+          setQrCode(code.data);
+          setSuccess(true);
+          setTimeout(() => {
+            setSuccess(false);
+          }, 3000);
+          alert("inside the office");
+        } else {
+          setQrCode(code.data);
+          setSuccess(true);
+          setTimeout(() => {
+            setSuccess(false);
+          }, 3000);
+          alert("outside the office");
+        }
+      }
     } else {
       setNotification(true);
     }
