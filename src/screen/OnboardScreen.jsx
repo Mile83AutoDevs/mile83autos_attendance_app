@@ -42,7 +42,13 @@ function OnboardScreen() {
           {/* The Get Started button must be tapped by user */}
           <ButtonContainer>
             <Button onClick={handleGetStarted}>Get Started</Button>
-            <RegisterDevice>Register your device</RegisterDevice>
+            <RegisterDevice
+              onClick={() => {
+                navigateObj("/register-screen");
+              }}
+            >
+              Register your device
+            </RegisterDevice>
           </ButtonContainer>
           <BrandText>Powered by Mile83autos</BrandText>
 

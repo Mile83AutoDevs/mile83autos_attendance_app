@@ -1,5 +1,6 @@
 import styled, { keyframes } from "styled-components";
 import { IoClose } from "react-icons/io5";
+import HistoryComponent from "./HistoryComponent";
 
 function HistoryModal({ onClose }) {
   return (
@@ -10,7 +11,25 @@ function HistoryModal({ onClose }) {
           <Closeicon onClick={onClose} />
         </Header>
         {/* Body container */}
-        <BodyContainer>{/* Your history content here */}</BodyContainer>
+        <BodyContainer>
+          <ContentContainer>
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+            <HistoryComponent />
+          </ContentContainer>
+        </BodyContainer>
       </SubContainer>
     </Container>
   );
@@ -19,6 +38,12 @@ function HistoryModal({ onClose }) {
 export default HistoryModal;
 
 /* ---------------- Animations ---------------- */
+const ContentContainer = styled.div`
+  display: flex;
+  padding-top: 25px;
+  flex-direction: column;
+  gap: 25px;
+`;
 
 const slideUp = keyframes`
   from {
