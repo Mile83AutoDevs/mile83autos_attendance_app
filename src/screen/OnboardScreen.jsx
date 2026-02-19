@@ -1,11 +1,19 @@
 import styled from "styled-components";
 import theme from "../assets/theme.png";
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import NoInternet from "../components/NoInternet";
 
 function OnboardScreen() {
   const navigateObj = useNavigate();
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    const data = localStorage.getItem("onBoarded");
+    if (data) {
+      navigateObj("/app", { state: { stateCamera: true } });
+    }
+  }, []);
 
   const handleGetStarted = async () => {
     try {
@@ -13,16 +21,14 @@ function OnboardScreen() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute("playsinline", "true"); // iOS requirement
         videoRef.current.muted = true; // iOS autoplay
         await videoRef.current.play();
       }
-
-      // Navigate only after camera starts
       navigateObj("/app", { state: { startCamera: true } });
+      localStorage.setItem("onBoarded", true);
     } catch (err) {
       console.error("Camera error:", err);
       alert("Camera access is required to continue.");
@@ -30,23 +36,26 @@ function OnboardScreen() {
   };
 
   return (
-    <Container>
-      <SubContainer>
-        <HeaderContainer>
-          <HeaderTitle>Making Checking-in Very Easy</HeaderTitle>
-          <HeaderDescription>
-            An official app by Mile83autos for seamless check-ins
-          </HeaderDescription>
-        </HeaderContainer>
+    <>
+      <NoInternet />
+      <Container>
+        <SubContainer>
+          <HeaderContainer>
+            <HeaderTitle>Making Checking-in Very Easy</HeaderTitle>
+            <HeaderDescription>
+              An official app by Mile83autos for seamless check-ins
+            </HeaderDescription>
+          </HeaderContainer>
 
-        {/* The Get Started button must be tapped by user */}
-        <Button onClick={handleGetStarted}>Get Started</Button>
-        <BrandText>Powered by Mile83autos</BrandText>
+          {/* The Get Started button must be tapped by user */}
+          <Button onClick={handleGetStarted}>Get Started</Button>
+          <BrandText>Powered by Mile83autos</BrandText>
 
-        {/* Video element must exist and visible in DOM, hidden visually but not display:none */}
-        <VideoCamera ref={videoRef} />
-      </SubContainer>
-    </Container>
+          {/* Video element must exist and visible in DOM, hidden visually but not display:none */}
+          <VideoCamera ref={videoRef} />
+        </SubContainer>
+      </Container>
+    </>
   );
 }
 
