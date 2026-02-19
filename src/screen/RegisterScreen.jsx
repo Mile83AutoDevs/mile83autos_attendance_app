@@ -39,7 +39,7 @@ export default RegisterScreen;
 /* ---------------- Layout ---------------- */
 
 const ButtonContainer = styled.div`
-  margin-top: 150px;
+  margin-top: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,12 +60,10 @@ const Container = styled.div`
 
 const SubContainer = styled.div`
   width: 100%;
-  max-width: 420px;
-  min-height: 100vh;
   background: #fff;
   padding: 20px;
   display: flex;
-  margin-top: 50px;
+  margin-top: 40px;
   flex-direction: column;
 `;
 
@@ -93,10 +91,10 @@ const ContentContainer = styled.div`
 `;
 
 const FormContainer = styled.div`
-  width: 320px;
+  width: 300px;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: 15px;
   border-radius: 15px;
   background: whitesmoke;
 `;
