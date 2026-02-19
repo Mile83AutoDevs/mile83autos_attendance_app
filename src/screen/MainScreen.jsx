@@ -7,18 +7,19 @@ import { MdHistory } from "react-icons/md";
 import jsQR from "jsqr";
 import { useLocation } from "react-router-dom";
 import HistoryModal from "../components/HistoryModal";
+import CheckingModal from "../components/CheckingModal";
 
 function MainScreen() {
   const location = useLocation();
   const startCameraOnLoad = location.state?.startCamera || false;
   const [openBottomSheet, setBottomSheetVisibility] = useState(false);
+  const [openCheckinSheet, setCheckinSheetVisibility] = useState(false);
 
   const videoRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
 
   useEffect(() => {
     if (!startCameraOnLoad) return;
-
     let animationFrameId;
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
@@ -88,6 +89,13 @@ function MainScreen() {
           }}
         />
       )}
+      {openCheckinSheet && (
+        <CheckingModal
+          onExit={() => {
+            setCheckinSheetVisibility(false);
+          }}
+        />
+      )}
       <Container>
         <CameraContainer>
           <VideoCamera ref={videoRef} />
@@ -104,7 +112,11 @@ function MainScreen() {
           <ScanButton>
             <ScanIcon />
           </ScanButton>
-          <PeopleIcon />
+          <PeopleIcon
+            onClick={() => {
+              setCheckinSheetVisibility(true);
+            }}
+          />
         </ControlPanelContainer>
 
         {qrCode && <QrResult>Scanned: {qrCode}</QrResult>}

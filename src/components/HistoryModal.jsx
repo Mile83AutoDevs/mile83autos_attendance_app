@@ -45,12 +45,12 @@ const Container = styled.div`
 
 const SubContainer = styled.div`
   width: 100%;
-  height: 80vh;
-  background: ivory;
+  height: 75vh;
+  background: #fff;
   border-top-left-radius: 25px;
   border-top-right-radius: 25px;
   padding: 20px;
-  animation: ${slideUp} 0.3s ease-out;
+  animation: ${slideUp} 0.2s ease-out;
   display: flex;
   flex-direction: column;
 `;
