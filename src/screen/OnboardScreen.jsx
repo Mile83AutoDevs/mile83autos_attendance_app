@@ -8,13 +8,6 @@ function OnboardScreen() {
   const navigateObj = useNavigate();
   const videoRef = useRef(null);
 
-  useEffect(() => {
-    const data = localStorage.getItem("onBoarded");
-    if (data) {
-      navigateObj("/app", { state: { stateCamera: true } });
-    }
-  }, []);
-
   const handleGetStarted = async () => {
     try {
       // Start camera on tap
@@ -28,7 +21,7 @@ function OnboardScreen() {
         await videoRef.current.play();
       }
       navigateObj("/app", { state: { startCamera: true } });
-      localStorage.setItem("onBoarded", true);
+      localStorage.removeItem("onBoarded");
     } catch (err) {
       console.error("Camera error:", err);
       alert("Camera access is required to continue.");
