@@ -40,7 +40,10 @@ function OnboardScreen() {
           </HeaderContainer>
 
           {/* The Get Started button must be tapped by user */}
-          <Button onClick={handleGetStarted}>Get Started</Button>
+          <ButtonContainer>
+            <Button onClick={handleGetStarted}>Get Started</Button>
+            <RegisterDevice>Register your device</RegisterDevice>
+          </ButtonContainer>
           <BrandText>Powered by Mile83autos</BrandText>
 
           {/* Video element must exist and visible in DOM, hidden visually but not display:none */}
@@ -72,7 +75,7 @@ const SubContainer = styled.div`
   margin-top: 450px;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 `;
 
 const HeaderContainer = styled.div``;
@@ -119,6 +122,32 @@ const VideoCamera = styled.video`
   position: absolute;
   top: 0;
   left: 0;
+`;
+const ButtonContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 5px;
+  width: 100%;
+  padding: 10px;
+`;
+
+const RegisterDevice = styled.button`
+  padding: 17px 30px;
+  background-color: #f7e6bd;
+  color: black;
+  border: none;
+  width: 100%;
+  border-radius: 100px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+
+  &:hover {
+    transform: scale(1.05);
+  }
 `;
 
 export default OnboardScreen;
