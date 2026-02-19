@@ -113,7 +113,8 @@ const shimmer = keyframes`
 `;
 
 const CameraContainer = styled.div`
-  flex: 1;
+  margin-top: 10%;
+  height: 65%;
   width: 100%;
   position: relative;
   border-radius: 20px;
@@ -162,7 +163,7 @@ const PeopleIcon = styled(BsFillPeopleFill)`
   font-size: 30px;
 `;
 const ScanIcon = styled(LuScanLine)`
-  font-size: 90px;
+  font-size: 30px;
   color: ivory;
 `;
 
