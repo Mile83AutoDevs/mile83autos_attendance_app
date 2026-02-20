@@ -21,6 +21,7 @@ function MainScreen() {
   const [qrCode, setQrCode] = useState("");
   const [notification, setNotification] = useState(false);
   const [userCoods, setUserCoods] = useState({});
+  const [isOutsideOffice, setOfficeLocation] = useState(false);
 
   // define params ;
   const static_office_coord = {
@@ -103,7 +104,6 @@ function MainScreen() {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
-  //  =================================
 
   //  function to get User coordinates ;
   const getUserCoordinates = () => {
@@ -154,14 +154,14 @@ function MainScreen() {
           setTimeout(() => {
             setSuccess(false);
           }, 3000);
-          alert("inside the office");
+          setOfficeLocation(false); // if user is inside the office , set office location as false
         } else {
           setQrCode(code.data);
           setSuccess(true);
           setTimeout(() => {
             setSuccess(false);
           }, 3000);
-          alert("outside the office");
+          setOfficeLocation(true); // if user is outside the office , set office location as true
         }
       }
     } else {
@@ -185,7 +185,15 @@ function MainScreen() {
           }}
         />
       )}
-      {success && <SuccessComponent msg="Welcome to office !" />}
+      {success && (
+        <SuccessComponent
+          msg={
+            isOutsideOffice === true
+              ? "Looks like you are outside the office, Welcome !"
+              : "Hey, Welcome to office !"
+          }
+        />
+      )}
       {openBottomSheet && (
         <HistoryModal
           onClose={() => {
