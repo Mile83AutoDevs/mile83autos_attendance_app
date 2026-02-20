@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { PiSpinner } from "react-icons/pi";
 import styled, { keyframes } from "styled-components";
 import SuccessComponent from "../components/SuccessComponent";
+import Notification from "../components/Notification.jsx";
 
 function RegisterScreen() {
   const navigationObj = useNavigate();
@@ -11,16 +12,42 @@ function RegisterScreen() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [success, setSuccess] = useState(false);
-
+  const [params, setParams] = useState({});
   const isValid = fullName.trim() !== "" && phone.trim() !== "";
 
+  //  define global data params ;
+  const Global_data_template = {
+    virtual_serial_no: "",
+  };
+
+  //  fucntion to handle data params activities
+  const manageParams = (type, params = {}) => {
+    if (type === "STORE_DATA") {
+      const sanitizedData = JSON.stringify(params, null, 3);
+      const _store = localStorage.setItem(
+        "object_data_storage",
+        btoa(sanitizedData),
+      );
+      if (_store) {
+        return true;
+      }
+    } else if (type === "GET_DATA") {
+      const _data = localStorage.getItem("object_data_storage");
+      if (_data === null) {
+        return false;
+      } else {
+        const _decryptData = atob(_data);
+        return JSON.parse(_decryptData);
+      }
+    }
+  };
+
+  // function to handle registration
   const handleRegister = () => {
     if (!isValid) return;
-
     console.log("Registering:", { fullName, phone });
     setSuccess(true);
     setLoading(true);
-
     setTimeout(() => {
       setSuccess(false);
       setLoading(false);
@@ -33,7 +60,7 @@ function RegisterScreen() {
       <Container>
         <SubContainer>
           <HeaderContainer>
-            <Title>Create Account</Title>
+            <Title>Register Device</Title>
             <CloseIcon onClick={() => navigationObj(-1)} />
           </HeaderContainer>
 
@@ -41,7 +68,7 @@ function RegisterScreen() {
             <FormContainer>
               <FormTitle>Full Name</FormTitle>
               <FormInput
-                placeholder="Enter your full name"
+                placeholder="Enter your name example: Mr. Jide"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />

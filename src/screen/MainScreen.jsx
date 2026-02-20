@@ -189,7 +189,7 @@ function MainScreen() {
         <SuccessComponent
           msg={
             isOutsideOffice === true
-              ? "Looks like you are outside the office, Welcome !"
+              ? `Looks like you are outside the office, Welcome ! ${qrCode}`
               : "Hey, Welcome to office !"
           }
         />
