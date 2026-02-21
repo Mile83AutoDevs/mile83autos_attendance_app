@@ -6,6 +6,7 @@ import MainScreen from "./screen/MainScreen.jsx";
 import OnboardScreen from "./screen/OnboardScreen.jsx";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import RegisterScreen from "./screen/RegisterScreen.jsx";
+import CardRevealScreen from "./screen/CardRevealScreen.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -15,6 +16,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/app" element={<MainScreen />} />
         <Route path="/onboard" element={<OnboardScreen />} />
         <Route path="/register-screen" element={<RegisterScreen />} />
+        <Route path="/card-reveal" element={<CardRevealScreen />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

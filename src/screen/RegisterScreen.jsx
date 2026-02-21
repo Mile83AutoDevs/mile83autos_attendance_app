@@ -5,6 +5,7 @@ import { PiSpinner } from "react-icons/pi";
 import styled, { keyframes } from "styled-components";
 import SuccessComponent from "../components/SuccessComponent";
 import Notification from "../components/Notification.jsx";
+import axios from "axios";
 
 function RegisterScreen() {
   const navigationObj = useNavigate();
@@ -14,7 +15,8 @@ function RegisterScreen() {
   const [success, setSuccess] = useState(false);
   const [params, setParams] = useState({});
   const isValid = fullName.trim() !== "" && phone.trim() !== "";
-
+  const [notificationReveal, setNotificationReveal] = useState(false);
+  const [error, setError] = useState(false);
   //  define global data params ;
   const Global_data_template = {
     virtual_serial_no: "",
@@ -42,21 +44,59 @@ function RegisterScreen() {
     }
   };
 
+  //  function to store temporal card data ;
+  const storeTempCardData = (params = {}) => {
+    const sanitize = JSON.stringify(params, null, 3);
+    return localStorage.setItem("temp_card_object_store", sanitize);
+  };
+
+  // two localstorage 1. object data storahe (virtual serial no). 2. card data (temporar)
   // function to handle registration
-  const handleRegister = () => {
-    if (!isValid) return;
-    console.log("Registering:", { fullName, phone });
-    setSuccess(true);
-    setLoading(true);
-    setTimeout(() => {
-      setSuccess(false);
+  const handleRegister = async () => {
+    try {
+      if (!isValid) return;
+      const dataParams = {
+        name: fullName,
+        office_number: phone,
+      };
+      const Endpoint = {
+        local: "http://localhost:5000/api/v1/registerDevice",
+        production:
+          "https://mile83autos-api-backend-1.onrender.com/api/v1/registerDevice",
+      };
+      setLoading(true);
+      const response = await axios.post(Endpoint.production, dataParams);
+      if (response.data.msg == "successful") {
+        dataParams["virtual_serial_id"] = response.data.virtual_serial_id;
+        storeTempCardData(dataParams); // temporarly store card data ;
+        manageParams("STORE_DATA", response.data.virtual_serial_id); // store virtual serial id permananetly ;
+        setError(false);
+        setLoading(false);
+        setSuccess(true);
+        setTimeout(() => {
+          navigationObj("/card-reveal");
+        }, 2000);
+      }
+    } catch (err) {
+      console.log(err);
       setLoading(false);
-    }, 2000);
+      setNotificationReveal(true);
+      setError(true);
+    }
   };
 
   return (
     <>
       {success === true && <SuccessComponent msg="Successful!" />}
+      {notificationReveal == true && (
+        <Notification
+          title={"Notification"}
+          description={error ? "Something went wrong" : "Successful"}
+          onClose={() => {
+            setNotificationReveal(false);
+          }}
+        />
+      )}
       <Container>
         <SubContainer>
           <HeaderContainer>
