@@ -121,8 +121,8 @@ const SubContainer = styled.div`
   width: 100%;
   display: flex;
   align-items: center;
-  margin-top: 60px;
-  height: 700px;
+  margin-top: 25px;
+  height: 680px;
   justify-content: space-between;
   flex-direction: column;
 `;
@@ -195,8 +195,10 @@ const ButtonContainer = styled.div`
 `;
 const ButtonContainerText = styled.p``;
 const ConfirmButton = styled.button`
-  padding: 17px;
+  padding: 15px;
   width: 90vw;
+  color: black;
+  font-size: 14px;
   border-radius: 100px;
   border: solid transparent;
   background: var(--primary-bg-theme);
@@ -206,8 +208,10 @@ const ConfirmButton = styled.button`
   }
 `;
 const ScreenShotButton = styled.button`
-  padding: 17px;
+  padding: 15px;
   width: 90vw;
+  color: black;
+  font-size: 14px;
   border-radius: 100px;
   border: solid transparent;
   background: whitesmoke;
