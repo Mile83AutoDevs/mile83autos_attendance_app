@@ -145,7 +145,9 @@ function HistoryModal({ onClose }) {
                         <NoInternetTextContainer>
                           <RefreshIcon />
                           <NoInternetText>
-                            No Internet,click the refresh button
+                            {sanitizeData === null
+                              ? "you have not started using your device to checkin"
+                              : "Could not fetch data"}
                           </NoInternetText>
                         </NoInternetTextContainer>
                         <NoInternetButton
