@@ -19,7 +19,7 @@ function HistoryModal({ onClose }) {
       "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByMonthBasedOnId",
   };
   const getUserSerialId = localStorage.getItem("object_data_storage");
-  const sanitizeData = atob(getUserSerialId);
+  const sanitizeData = getUserSerialId ? atob(getUserSerialId) : null;
 
   useEffect(() => {
     getUserData();
@@ -41,9 +41,13 @@ function HistoryModal({ onClose }) {
 
   // function to get user attendance history based on the particular month user is present;
   const getUserData = async () => {
+    if (!sanitizeData) {
+      setConnection(false);
+      return null;
+    }
     try {
       const response = await axios.post(
-        endpoint.development ? endpoint.local : endpoint.production,
+        endpoint.development === true ? endpoint.local : endpoint.production,
         payload,
       );
       if (response) {
