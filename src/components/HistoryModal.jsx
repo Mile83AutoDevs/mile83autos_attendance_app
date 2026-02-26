@@ -13,7 +13,7 @@ function HistoryModal({ onClose }) {
   const [connection, setConnection] = useState(true);
   // define endpoint
   const endpoint = {
-    development: true,
+    development: false,
     local: "http://localhost:5000/api/getAllAttendanceByMonthBasedOnId",
     production:
       "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByMonthBasedOnId",
