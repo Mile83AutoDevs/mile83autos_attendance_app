@@ -1,19 +1,19 @@
 import React from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 function HistoryComponent(props) {
   return (
     <>
-      <Container>
+      <Container key={props.key}>
         <Subcontainer>
           <ProfilePicsContainer>
             <ProfilePics></ProfilePics>
             <NameContainer>
-              <Title>You checkedin @ the office early</Title>
-              <Points>20pt </Points>
+              <Title>{props?.description}</Title>
+              <Points>{props?.point}</Points>
             </NameContainer>
           </ProfilePicsContainer>
-          <Time>3:45</Time>
+          <Time>{props?.time}</Time>
         </Subcontainer>
       </Container>
     </>

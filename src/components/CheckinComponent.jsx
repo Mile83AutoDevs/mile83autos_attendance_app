@@ -4,16 +4,16 @@ import styled from "styled-components";
 function CheckinComponent(props) {
   return (
     <>
-      <Container>
+      <Container id={props.index}>
         <Subcontainer>
           <ProfilePicsContainer>
             <ProfilePics></ProfilePics>
             <NameContainer>
-              <Title>John Obeni</Title>
-              <Description>Checkin @ the office early </Description>
+              <Title>{props.Name}</Title>
+              <Description>{props.Description}</Description>
             </NameContainer>
           </ProfilePicsContainer>
-          <Time>3:45</Time>
+          <Time>{props.Time}</Time>
         </Subcontainer>
       </Container>
     </>

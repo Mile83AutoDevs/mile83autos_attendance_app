@@ -2,6 +2,11 @@ import styled, { keyframes } from "styled-components";
 import { IoClose } from "react-icons/io5";
 import { useState, useRef } from "react";
 import CheckinComponent from "./CheckinComponent";
+import axios from "axios";
+import { useEffect } from "react";
+import { IoRefresh } from "react-icons/io5";
+import { TbMoodEmpty } from "react-icons/tb";
+import { ImSpinner3 } from "react-icons/im";
 
 function CheckingModal({ onExit }) {
   const [position, setPosition] = useState("checkin");
@@ -9,6 +14,63 @@ function CheckingModal({ onExit }) {
   const startY = useRef(0);
   const startX = useRef(0);
   const sheetRef = useRef(null);
+  const [connection, setConnection] = useState(true);
+  const [data, setData] = useState([]);
+  const [spinner, setSpinner] = useState(false);
+
+  //  define endpoint
+  const endpoints = {
+    developmemt: false,
+    local: "http://localhost:5000/api/getAllAttendanceByDate",
+    production:
+      "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByDate",
+  };
+
+  //  on checkmodal load call api data ;
+  useEffect(() => {
+    getDataByDate();
+  }, []);
+
+  //  function to get data from server by date ;
+  const getDataByDate = async () => {
+    try {
+      const todayDate = new Date().toLocaleDateString("en-CA");
+      const payload = { date: todayDate };
+      const response = await axios.post(
+        endpoints.developmemt ? endpoints.local : endpoints.production,
+        payload,
+      );
+      if (response.data.data === null) {
+        return setData([]);
+      } else {
+        return setData(response.data.data);
+      }
+    } catch (err) {
+      setConnection(false);
+    }
+  };
+
+  //  function to handle button click to refresh data from server ;
+  const handleDataRefresh = async () => {
+    try {
+      setSpinner(true);
+      const res = await getDataByDate();
+      if (res) {
+        setSpinner(false);
+        setConnection(true);
+        console.log(res);
+      } else if (!res) {
+        setTimeout(() => {
+          setSpinner(false);
+        }, 2000);
+      }
+    } catch (err) {
+      setConnection(false);
+      setTimeout(() => {
+        setSpinner(false);
+      }, 2000);
+    }
+  };
 
   /* ---------------- Drag Down To Close ---------------- */
 
@@ -82,41 +144,85 @@ function CheckingModal({ onExit }) {
               Checkout
             </NavButton>
           </HeaderNavigatorContainer>
-          {position == "checkin" ? (
-            <ContentContainer>
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-            </ContentContainer>
+          {connection === false ? (
+            <>
+              <NoInternetParentContainer>
+                {spinner === false ? (
+                  <>
+                    <NoInternetTextContainer>
+                      <RefreshIcon />
+                      <NoInternetText>
+                        No Internet,click the refresh button
+                      </NoInternetText>
+                    </NoInternetTextContainer>
+                    <NoInternetButton
+                      onClick={() => {
+                        handleDataRefresh();
+                      }}
+                    >
+                      Refresh
+                    </NoInternetButton>
+                  </>
+                ) : (
+                  <>
+                    <SpinnerIcon />
+                  </>
+                )}
+              </NoInternetParentContainer>
+            </>
           ) : (
-            <ContentContainer>
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-              <CheckinComponent />
-            </ContentContainer>
-            // added content container
+            <>
+              {data.length === 0 ? (
+                <>
+                  <NoDataParentContainer>
+                    <EmptyIcon />
+                    <NoDataText>
+                      {position === "checkin"
+                        ? "No Staff have checked-in yet "
+                        : "No Staff have checked-out yet"}
+                    </NoDataText>
+                  </NoDataParentContainer>
+                </>
+              ) : (
+                <>
+                  {position === "checkin" ? (
+                    <>
+                      <ContentContainer>
+                        {data.map(
+                          (value, index) =>
+                            data.checkinStatus === true && (
+                              <>
+                                <CheckinComponent
+                                  index={value._id}
+                                  Name={value.staffName}
+                                  Description={`${value.staffName}${value.checkInDescription}`}
+                                  Time={value.checkInTime}
+                                />
+                              </>
+                            ),
+                        )}
+                      </ContentContainer>
+                    </>
+                  ) : (
+                    <>
+                      {data.map(
+                        (value, index) =>
+                          data.checkoutStatus === true && (
+                            <>
+                              <CheckinComponent
+                                index={value._id}
+                                Name={value.staffName}
+                                Description={`${value.staffName}${value.checkOutDescription}`}
+                                Time={value.checkOutTime}
+                              />
+                            </>
+                          ),
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </>
           )}
         </BodyContainer>
       </SubContainer>
@@ -238,6 +344,75 @@ const NavButton = styled.button`
   color: ${(props) => (props.active ? "black" : "#555")};
   transition: color 0.3s ease;
   text-align: center;
+`;
+
+const NoInternetParentContainer = styled.div`
+  padding-top: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  flex-direction: column;
+`;
+const NoInternetText = styled.h3`
+  font-size: 15px;
+  width: 150px;
+`;
+const NoInternetButton = styled.button`
+  padding: 10px;
+  font-size: 14px;
+  border: solid transparent;
+  width: 300px;
+  border-radius: 100px;
+  transition: linear 100ms;
+  cursor: pointer;
+  background: var(--primary-bg-theme);
+  &:hover {
+    transform: scale(0.95);
+  }
+`;
+const RefreshIcon = styled(IoRefresh)`
+  font-size: 40px;
+`;
+const NoInternetTextContainer = styled.div`
+  display: flex;
+  text-align: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+`;
+
+const NoDataParentContainer = styled.div`
+  display: flex;
+  text-align: center;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 100px;
+  gap: 15px;
+`;
+
+const EmptyIcon = styled(TbMoodEmpty)`
+  font-size: 40px;
+`;
+const NoDataText = styled.h3`
+  font-size: 15px;
+  width: 150px;
+`;
+
+const rotate = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+const SpinnerIcon = styled(ImSpinner3)`
+  font-size: 50px;
+  animation: ${rotate} 1s linear infinite;
 `;
 
 const RevealContainer = styled.div``;

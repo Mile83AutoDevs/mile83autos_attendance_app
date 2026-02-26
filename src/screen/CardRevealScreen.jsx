@@ -113,7 +113,7 @@ function CardRevealScreen(props) {
 const Container = styled.div`
   min-height: 100vh;
   width: 100%;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 1);
   display: flex;
   flex-direction: column;
 `;
