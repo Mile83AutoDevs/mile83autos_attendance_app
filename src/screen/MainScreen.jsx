@@ -11,6 +11,8 @@ import CheckingModal from "../components/CheckingModal";
 import SuccessComponent from "../components/SuccessComponent";
 import Notification from "../components/Notification.jsx";
 import axios from "axios";
+import distanceInMeters from "../utils/calculateDistance.js";
+import dateManager from "../utils/dateManager.js";
 
 function MainScreen() {
   const location = useLocation();
@@ -95,7 +97,6 @@ function MainScreen() {
             }
             animationFrameId = requestAnimationFrame(scanFrame);
           };
-
           scanFrame();
         }
       } catch (err) {
@@ -103,7 +104,7 @@ function MainScreen() {
         alert("Cannot access camera. Please check permissions.");
       }
     };
-
+    //  function to start camera
     startCamera();
     return () => {
       cancelAnimationFrame(animationFrameId);
@@ -113,20 +114,7 @@ function MainScreen() {
     };
   }, [startCameraOnLoad]);
 
-  //  function to calculate distance
-  const distanceInMeters = (lat1, lon1, lat2, lon2) => {
-    const R = 6371000; // radius of Earth in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
+  // -------------------------------------------------
   //  function to get User coordinates ;
   const getUserCoordinates = () => {
     if ("geolocation" in navigator) {
@@ -152,18 +140,7 @@ function MainScreen() {
     }
   };
 
-  //  function to get date and time ;
-  const dateManager = (type = "") => {
-    switch (type) {
-      case "date":
-        return new Date().toLocaleDateString("en-CA");
-        break;
-      case "time":
-        return new Date().toLocaleTimeString();
-        break;
-    }
-  };
-
+  // --------------------------------------------------------
   //  function to calculate current month
   function getCurrentMonthKey() {
     const now = new Date();
@@ -178,6 +155,13 @@ function MainScreen() {
     return now > standardTime ? 3 : 5;
   };
 
+  //  function to sanitise qr-code
+  const sanitizeInjectedQrCode = (code = "") => {
+    const sanitizedCode = code.replace(/\/\//g, "");
+    return sanitizedCode;
+  };
+
+  // ---------------------------------------------------------------------
   //  function to scan qrcode ;
   let performanceScore = calculatePoint();
   const scanQRCode = async () => {
@@ -213,14 +197,17 @@ function MainScreen() {
         if (ParseScore.score < 1) {
           if (distance <= static_office_coord.allowed_radius) {
             setQrCode(code.data);
+
+            // CHECK-IN PARAMS
             const CheckinDataParams = {
               point: performanceScore,
-              virtual_serial_id: code.data,
+              virtual_serial_id: sanitizeInjectedQrCode(code.data),
               date: dateManager("date"),
               checkInTime: dateManager("time"),
               checkInDescription: `${performanceScore < 5 ? "came to the office late" : "came to the office early"}`,
               month: getCurrentMonthKey(),
             };
+
             const response = await axios.post(
               Endpoint.checkin_production,
               CheckinDataParams,
@@ -242,7 +229,7 @@ function MainScreen() {
             setQrCode(code.data);
             const DataParams = {
               point: performanceScore,
-              virtual_serial_id: code.data,
+              virtual_serial_id: sanitizeInjectedQrCode(code.data),
               date: dateManager("date"),
               checkInTime: dateManager("time"),
               checkInDescription: `checkin outside the office`,
@@ -297,7 +284,7 @@ function MainScreen() {
           } else {
             setQrCode(code.data);
             const CheckoutDataParams = {
-              virtual_serial_id: code.data,
+              virtual_serial_id: sanitizeInjectedQrCode(code.data),
               date: dateManager("date"),
               checkOutTime: dateManager("time"),
               checkOutDescription: `checkout inside the office`,
