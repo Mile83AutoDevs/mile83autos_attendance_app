@@ -69,7 +69,10 @@ function RegisterScreen() {
       if (response.data.msg == "successful") {
         dataParams["virtual_serial_id"] = response.data.virtual_serial_id;
         storeTempCardData(dataParams); // temporarly store card data ;
-        manageParams("STORE_DATA", response.data.virtual_serial_id); // store virtual serial id permananetly ;
+        let _payload = {
+          VIRTUAL_DEVICE_SERIAL_ID: response.data.virtual_serial_id,
+        };
+        manageParams("STORE_DATA", _payload); // store virtual serial id permananetly ;
         setError(false);
         setLoading(false);
         setSuccess(true);

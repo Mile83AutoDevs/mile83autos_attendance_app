@@ -11,47 +11,30 @@ import CheckingModal from "../components/CheckingModal";
 import SuccessComponent from "../components/SuccessComponent";
 import Notification from "../components/Notification.jsx";
 import axios from "axios";
-import distanceInMeters from "../utils/calculateDistance.js";
-import dateManager from "../utils/dateManager.js";
+// import dateManager from "../utils/dateManager.js";
 
 function MainScreen() {
   const location = useLocation();
   const startCameraOnLoad = location.state?.startCamera || false;
   const [openBottomSheet, setBottomSheetVisibility] = useState(false);
   const [openCheckinSheet, setCheckinSheetVisibility] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState({
+    msg: "",
+    state: false,
+  });
   const videoRef = useRef(null);
   const [qrCode, setQrCode] = useState("");
   const [notification, setNotification] = useState(false);
   const [userCoods, setUserCoods] = useState({});
-  const [isOutsideOffice, setOfficeLocation] = useState(false);
   const [error, setError] = useState(false);
-
-  // define params ;
-  const static_office_coord = {
-    longitude: "6.47705",
-    latitude: "3.29046",
-    allowed_radius: 50,
-  };
-
-  // define standard work resumption time ;
-  const standardTime = new Date().setHours(9, 0, 0, 0);
-
-  // define scanning trials 2 max ;
-  useEffect(() => {
-    const scanningTrialsObjectStore = localStorage.getItem(
-      "scanningTrials_store",
-    );
-    if (scanningTrialsObjectStore === null) {
-      const scanningTrial = {
-        score: 0,
-      };
-      return localStorage.setItem(
-        "scanningTrials_store",
-        JSON.stringify(scanningTrial),
-      );
-    }
-  }, []);
+  const GLOBAL_LOCAL_STORAGE_TRIAL = "GLOBAL_TRIAL_OBJECT_STORE";
+  const [trialNotification, setTrialNotification] = useState(false);
+  const [network_outage_notification, set_network_outage_notification] =
+    useState(false);
+  const [msgNotification, setMsgNotification] = useState({
+    visibility: false,
+    msg: "",
+  });
 
   // load camera on start
   useEffect(() => {
@@ -60,6 +43,23 @@ function MainScreen() {
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
 
+    // FUNCTION TO HANDLE USER TRIALS
+    const handleTrial = () => {
+      const checkIfTrialExist = localStorage.getItem(
+        GLOBAL_LOCAL_STORAGE_TRIAL,
+      );
+      if (checkIfTrialExist === null) {
+        localStorage.setItem(
+          GLOBAL_LOCAL_STORAGE_TRIAL,
+          JSON.stringify({
+            scanning_trial: 2,
+          }),
+        );
+      }
+    };
+    // ==================================================
+
+    //  FUNCTION TO HANDLE CAMERA
     const startCamera = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -104,8 +104,8 @@ function MainScreen() {
         alert("Cannot access camera. Please check permissions.");
       }
     };
-    //  function to start camera
     startCamera();
+    handleTrial(); // FUNCTION TO HANDLE AUTO CREATION OF TRIAL IF NOT EXIST CREATE NEW ONE
     return () => {
       cancelAnimationFrame(animationFrameId);
       if (videoRef.current?.srcObject) {
@@ -149,25 +149,95 @@ function MainScreen() {
     return `${year}-${month}`;
   }
 
-  //  function to calculate point based on time
-  const calculatePoint = () => {
-    const now = new Date();
-    return now > standardTime ? 3 : 5;
-  };
-
   //  function to sanitise qr-code
   const sanitizeInjectedQrCode = (code = "") => {
     const sanitizedCode = code.replace(/\/\//g, "");
     return sanitizedCode;
   };
 
-  // ---------------------------------------------------------------------
-  //  function to scan qrcode ;
-  let performanceScore = calculatePoint();
+  //  function to detect early or late coming ;
+  const DetectLateComing = (type = "CHECKIN") => {
+    const STANDARD_RESUMPTION_TIME = 10;
+    const STANDARD_CLOSING_TIME = 17;
+    if (type === "CHECKIN") {
+      const getCurrentTime = new Date().getHours();
+      if (getCurrentTime > STANDARD_RESUMPTION_TIME) {
+        return true; // user is late to work;
+      } else {
+        return false; // user came early to work
+      }
+    } else if (type === "CHECKOUT") {
+      const getCurrentTime = new Date().getHours();
+      if (getCurrentTime > STANDARD_CLOSING_TIME) {
+        return true; // user left work late
+      } else {
+        return false; // user left work early
+      }
+    }
+  };
+
+  // DEFINE ENDPOINT URL
+  const Endpoint = {
+    isOnProd: false,
+    checkin_local: "http://localhost:5000/api/checkinStaff",
+    checkout_local: "http://localhost:5000/api/checkoutStaff",
+    checkin_production:
+      "https://mile83autos-api-backend-1.onrender.com/api/checkinStaff",
+    checkout_production:
+      "https://mile83autos-api-backend-1.onrender.com/api/checkoutStaff",
+  };
+
+  // FUNCTION TO AUTO DETECT WHICH ENDPOINT TO USER BASED ON TRIALS
+  const autoChangeEndpointBasedOnTrials = (isOnProd = false) => {
+    const _GLOBAL_AUTO_ENDPOINT = "";
+    let _getTrials = localStorage.getItem(GLOBAL_LOCAL_STORAGE_TRIAL);
+    const _sanitizedTrialData = JSON.parse(_getTrials);
+    if (Number(_sanitizedTrialData["scanning_trial"]) === 2) {
+      _GLOBAL_AUTO_ENDPOINT = isOnProd
+        ? Endpoint["checkin_production"]
+        : Endpoint["checkin_local"];
+    } else if (Number(_sanitizedTrialData) === 1) {
+      _GLOBAL_AUTO_ENDPOINT = isOnProd
+        ? Endpoint["checkout_production"]
+        : Endpoint["checkout_local"];
+    }
+    return _GLOBAL_AUTO_ENDPOINT;
+  };
+  // =====================================================================
+
+  //  function to remove notification badge ;
+  const closeNotificationBadge = () => {
+    setNotification(false);
+  };
+
+  // FUNCTION TO HANDLE TRIAL NUMBER CALCULATION
+  const CalculateTrialNo = (type) => {
+    const _getTrialNo = localStorage.getItem(GLOBAL_LOCAL_STORAGE_TRIAL);
+    const _sanitizedTrialData = JSON.parse(_getTrialNo);
+    if (type === "CHECKIN") {
+      let newTrialNo = Number(_sanitizedTrialData["scanning_trial"]) - 1;
+      localStorage.setItem(
+        GLOBAL_LOCAL_STORAGE_TRIAL,
+        JSON.stringify({
+          scanning_trial: newTrialNo,
+        }),
+      );
+    } else {
+      let _newTrialNo = 2;
+      localStorage.setItem(
+        GLOBAL_LOCAL_STORAGE_TRIAL,
+        JSON.stringify({
+          scanning_trial: _newTrialNo,
+        }),
+      );
+    }
+  };
+  // ======================================
+
+  // ================================================================
+  //  FUNCTION TO HANDLE QRCODE SCANNING
   const scanQRCode = async () => {
     if (!videoRef.current) return;
-    const getScanningTrialScore = localStorage.getItem("scanningTrials_store");
-    const ParseScore = JSON.parse(getScanningTrialScore);
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     canvas.width = videoRef.current.videoWidth;
@@ -175,155 +245,128 @@ function MainScreen() {
     context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, canvas.width, canvas.height);
-    const getVirtualId = localStorage.getItem("object_data_storage");
-    const Sanitize = getVirtualId;
-    //  define endpoint
-    const Endpoint = {
-      checkin_local: "http://localhost:5000/api/checkinStaff",
-      checkout_local: "http://localhost:5000/api/checkoutStaff",
-      checkin_production:
-        "https://mile83autos-api-backend-1.onrender.com/api/checkinStaff",
-      checkout_production:
-        "https://mile83autos-api-backend-1.onrender.com/api/checkoutStaff",
-    };
-    if (code) {
-      if (userCoods) {
-        const distance = distanceInMeters(
-          static_office_coord.latitude,
-          static_office_coord.longitude,
-          userCoods.latitude,
-          userCoods.longitude,
-        );
-        if (ParseScore.score < 1) {
-          if (distance <= static_office_coord.allowed_radius) {
-            setQrCode(code.data);
-
-            // CHECK-IN PARAMS
-            const CheckinDataParams = {
-              point: performanceScore,
-              virtual_serial_id: sanitizeInjectedQrCode(code.data),
-              date: dateManager("date"),
-              checkInTime: dateManager("time"),
-              checkInDescription: `${performanceScore < 5 ? "came to the office late" : "came to the office early"}`,
-              month: getCurrentMonthKey(),
-            };
-
-            const response = await axios.post(
-              Endpoint.checkin_production,
-              CheckinDataParams,
-            );
-            const trials = localStorage.getItem("scanningTrials_store");
-            const newScore = (JSON.parse(trials).score += 1);
-            localStorage.setItem(JSON.stringify({ score: newScore }));
-            if (response.data.msg === "successful") {
-              setSuccess(true);
+    const _get_trial_object_store = localStorage.getItem(
+      GLOBAL_LOCAL_STORAGE_TRIAL,
+    );
+    const sanitizedObjectTrial = JSON.parse(_get_trial_object_store);
+    if (Number(sanitizedObjectTrial["scanning_trial"]) < 2) {
+      //  CHECK IF THERE IS ANY CODE DETECTED IF NOT RETURN NULL
+      if (code) {
+        try {
+          //  DEFINE CHECKIN PAYLOAD
+          const payload = {
+            virtual_serial_id: sanitizeInjectedQrCode(code),
+            date: new Date().toLocaleDateString(),
+            checkInTime: new Date().toLocaleTimeString(),
+            checkInDescription: `came ${DetectLateComing() ? "late" : "early"} to work`,
+            checkOutTime: new Date().toLocaleTimeString(),
+            checkOutDescription: `checkedout ${DetectLateComing("CHECKOUT") ? "late" : "early"} today`,
+            month: getCurrentMonthKey(),
+            position_logging: userCoods,
+          };
+          const response = await axios.post(
+            autoChangeEndpointBasedOnTrials(true),
+            payload,
+          );
+          switch (response.status) {
+            case 200:
+              if (response.data.type === "checkin") {
+                setSuccess({
+                  state: true,
+                  msg:
+                    response.data.position === "outside"
+                      ? "Looks like you checkin outside the office, welcome"
+                      : "Welcome to office",
+                });
+                setTimeout(() => {
+                  setSuccess({
+                    state: false,
+                    msg: "",
+                  });
+                  CalculateTrialNo("CHECKIN");
+                }, 3000);
+              } else if (response.data.type === "checkout") {
+                setSuccess({
+                  state: true,
+                  msg:
+                    response.data.position === "outside"
+                      ? "Looks like you checkin outside the office, welcome"
+                      : "Welcome to office",
+                });
+                setTimeout(() => {
+                  setSuccess({
+                    state: false,
+                    msg: "",
+                  });
+                  CalculateTrialNo("CHECKOUT");
+                }, 3000);
+              }
+              break;
+            case 403:
+              setMsgNotification({
+                visibility: true,
+                msg: "You are not verified yet, contact admin",
+              });
               setTimeout(() => {
-                setSuccess(false);
+                setMsgNotification({
+                  visibility: false,
+                  msg: "",
+                });
               }, 3000);
-              setOfficeLocation(false); // if user is inside the office , set office location as false
-            } else {
-              setError(true);
-              setNotification(true);
-            }
-          } else {
-            setQrCode(code.data);
-            const DataParams = {
-              point: performanceScore,
-              virtual_serial_id: sanitizeInjectedQrCode(code.data),
-              date: dateManager("date"),
-              checkInTime: dateManager("time"),
-              checkInDescription: `checkin outside the office`,
-              month: getCurrentMonthKey(),
-            };
-            const response = await axios.post(
-              Endpoint.checkin_production,
-              DataParams,
-            );
-            if (response.data.msg === "successful") {
-              const trials = localStorage.getItem("scanningTrials_store");
-              const newScore = (JSON.parse(trials).score += 1);
-              localStorage.setItem(JSON.stringify({ score: newScore }));
-              setSuccess(true);
+              break;
+            case 404:
+              setMsgNotification({
+                visibility: true,
+                msg: "User not found",
+              });
               setTimeout(() => {
-                setSuccess(false);
+                setMsgNotification({
+                  visibility: false,
+                  msg: "",
+                });
               }, 3000);
-              setOfficeLocation(true); // if user is inside the office , set office location as false
-            } else {
-              setError(true);
-              setNotification(true);
-            }
+              break;
           }
-        } else if (ParseScore.score === 1) {
-          if (distance <= static_office_coord.allowed_radius) {
-            setQrCode(code.data);
-            const CheckoutDataParams = {
-              virtual_serial_id: code.data,
-              date: dateManager("date"),
-              checkOutTime: dateManager("time"),
-              checkOutDescription: `checkout inside the office`,
-            };
-            const response = await axios.post(
-              Endpoint.checkout_production,
-              CheckoutDataParams,
-            );
-            setSuccess(true);
-            if (response.data.msg === "successful") {
-              setSuccess(true);
-              setTimeout(() => {
-                setSuccess(false);
-              }, 3000);
-              localStorage.setItem(
-                "scanningTrials_store",
-                JSON.stringify({ score: 0 }),
-              );
-              setOfficeLocation(false); // if user is inside the office , set office location as false
-            } else {
-              setError(true);
-              setNotification(true);
-            }
-          } else {
-            setQrCode(code.data);
-            const CheckoutDataParams = {
-              virtual_serial_id: sanitizeInjectedQrCode(code.data),
-              date: dateManager("date"),
-              checkOutTime: dateManager("time"),
-              checkOutDescription: `checkout inside the office`,
-            };
-            const response = await axios.post(
-              Endpoint.checkout_production,
-              CheckoutDataParams,
-            );
-            setSuccess(true);
-            if (response.data.msg === "successful") {
-              setQrCode(code.data);
-              setSuccess(true);
-              setTimeout(() => {
-                setSuccess(false);
-              }, 3000);
-              localStorage.setItem(
-                "scanningTrials_store",
-                JSON.stringify({ score: 0 }),
-              );
-              setOfficeLocation(true); // if user is inside the office , set office location as false
-            } else {
-              setError(true);
-              setNotification(true);
-            }
-          }
+        } catch (err) {
+          set_network_outage_notification(true);
+          setTimeout(() => {
+            set_network_outage_notification(false);
+          }, 3000);
+          clearTimeout();
         }
+      } else {
+        setNotification(true);
+        setError(false);
+        setTimeout(() => {
+          setNotification(false);
+        }, 3000);
       }
     } else {
-      setNotification(true);
+      setTrialNotification(true);
+      setTimeout(() => {
+        setTrialNotification(false);
+      }, 4000);
+      clearTimeout();
     }
   };
-
-  //  function to remove notification badge ;
-  function closeNotificationBadge() {
-    setNotification(false);
-  }
-
   return (
     <>
+      {/* ================= THIS NOTIFICATION SECTION IS FOR TRIALS =============== */}
+      {msgNotification["visibility"] && (
+        <Notification
+          title="Notification"
+          description={msgNotification["msg"]}
+          onClose={() => {
+            setMsgNotification({
+              visibility: false,
+              msg: "",
+            });
+          }}
+        />
+      )}
+
+      {/* ==================================================================================== */}
+
       {notification && (
         <Notification
           title="Notification"
@@ -335,15 +378,43 @@ function MainScreen() {
           }}
         />
       )}
-      {success && (
-        <SuccessComponent
-          msg={
-            isOutsideOffice === true
-              ? `Looks like you are outside the office, Welcome ! ${qrCode}`
-              : "Hey, Welcome to office !"
+
+      {/*================= THIS NOTIFICATION SECTION IS FOR TRIALS=====  */}
+      {trialNotification && (
+        <Notification
+          title="Notification"
+          description={
+            trialNotification === true &&
+            "You have scan twice today, try tomorrow"
           }
+          onClose={() => {
+            setTrialNotification(false);
+          }}
         />
       )}
+      {/* ================== THIS NOTIFICATION SECTION IS FOR TRIALS ========= */}
+
+      {/* ============================ NETWORK OUTAGE NOTIFICATION =============== */}
+      {network_outage_notification && (
+        <Notification
+          title="Notification"
+          description={
+            network_outage_notification === true &&
+            "Something went wrong or no internet"
+          }
+          onClose={() => {
+            set_network_outage_notification(false);
+          }}
+        />
+      )}
+      {/* NETWORK OUTAGE NOTIFICATION ============================================ */}
+
+      {/* ====================================================================== */}
+      {/* Success component */}
+      {success["state"] && <SuccessComponent msg={success["msg"]} />}
+      {/*  Success component */}
+      {/* ============================================================== */}
+
       {openBottomSheet && (
         <HistoryModal
           onClose={() => {
@@ -385,8 +456,6 @@ function MainScreen() {
             }}
           />
         </ControlPanelContainer>
-
-        {qrCode && <QrResult>Scanned: {qrCode}</QrResult>}
       </Container>
     </>
   );
