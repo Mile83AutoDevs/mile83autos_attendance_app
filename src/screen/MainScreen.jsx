@@ -11,6 +11,8 @@ import CheckingModal from "../components/CheckingModal";
 import SuccessComponent from "../components/SuccessComponent";
 import Notification from "../components/Notification.jsx";
 import axios from "axios";
+import { PiSpinner } from "react-icons/pi";
+
 // import dateManager from "../utils/dateManager.js";
 
 function MainScreen() {
@@ -18,6 +20,7 @@ function MainScreen() {
   const startCameraOnLoad = location.state?.startCamera || false;
   const [openBottomSheet, setBottomSheetVisibility] = useState(false);
   const [openCheckinSheet, setCheckinSheetVisibility] = useState(false);
+  const [spinner, setSpinner] = useState(false);
   const [success, setSuccess] = useState({
     msg: "",
     state: false,
@@ -248,105 +251,104 @@ function MainScreen() {
     const _get_trial_object_store = localStorage.getItem(
       GLOBAL_LOCAL_STORAGE_TRIAL,
     );
+    setSpinner(true);
     const sanitizedObjectTrial = JSON.parse(_get_trial_object_store);
-    if (Number(sanitizedObjectTrial["scanning_trial"]) < 2) {
-      //  CHECK IF THERE IS ANY CODE DETECTED IF NOT RETURN NULL
-      if (code) {
-        try {
-          //  DEFINE CHECKIN PAYLOAD
-          const payload = {
-            virtual_serial_id: sanitizeInjectedQrCode(code),
-            date: new Date().toLocaleDateString(),
-            checkInTime: new Date().toLocaleTimeString(),
-            checkInDescription: `came ${DetectLateComing() ? "late" : "early"} to work`,
-            checkOutTime: new Date().toLocaleTimeString(),
-            checkOutDescription: `checkedout ${DetectLateComing("CHECKOUT") ? "late" : "early"} today`,
-            month: getCurrentMonthKey(),
-            position_logging: userCoods,
-          };
-          const response = await axios.post(
-            autoChangeEndpointBasedOnTrials(true),
-            payload,
-          );
-          switch (response.status) {
-            case 200:
-              if (response.data.type === "checkin") {
-                setSuccess({
-                  state: true,
-                  msg:
-                    response.data.position === "outside"
-                      ? "Looks like you checkin outside the office, welcome"
-                      : "Welcome to office",
-                });
-                setTimeout(() => {
-                  setSuccess({
-                    state: false,
-                    msg: "",
-                  });
-                  CalculateTrialNo("CHECKIN");
-                }, 3000);
-              } else if (response.data.type === "checkout") {
-                setSuccess({
-                  state: true,
-                  msg:
-                    response.data.position === "outside"
-                      ? "Looks like you checkin outside the office, welcome"
-                      : "Welcome to office",
-                });
-                setTimeout(() => {
-                  setSuccess({
-                    state: false,
-                    msg: "",
-                  });
-                  CalculateTrialNo("CHECKOUT");
-                }, 3000);
-              }
-              break;
-            case 403:
-              setMsgNotification({
-                visibility: true,
-                msg: "You are not verified yet, contact admin",
+    //  CHECK IF THERE IS ANY CODE DETECTED IF NOT RETURN NULL
+    if (code) {
+      try {
+        //  DEFINE CHECKIN PAYLOAD
+        const payload = {
+          virtual_serial_id: sanitizeInjectedQrCode(code),
+          date: new Date().toLocaleDateString(),
+          checkInTime: new Date().toLocaleTimeString(),
+          checkInDescription: `came ${DetectLateComing() ? "late" : "early"} to work`,
+          checkOutTime: new Date().toLocaleTimeString(),
+          checkOutDescription: `checkedout ${DetectLateComing("CHECKOUT") ? "late" : "early"} today`,
+          month: getCurrentMonthKey(),
+          position_logging: userCoods,
+        };
+        const response = await axios.post(
+          autoChangeEndpointBasedOnTrials(true),
+          payload,
+        );
+        switch (response.status) {
+          case 200:
+            if (response.data.type === "checkin") {
+              setSuccess({
+                state: true,
+                msg:
+                  response.data.position === "outside"
+                    ? "Looks like you checkin outside the office, welcome"
+                    : "Welcome to office",
               });
+              setSpinner(false);
               setTimeout(() => {
-                setMsgNotification({
-                  visibility: false,
+                setSuccess({
+                  state: false,
                   msg: "",
                 });
+                CalculateTrialNo("CHECKIN");
               }, 3000);
-              break;
-            case 404:
-              setMsgNotification({
-                visibility: true,
-                msg: "User not found",
+            } else if (response.data.type === "checkout") {
+              setSuccess({
+                state: true,
+                msg:
+                  response.data.position === "outside"
+                    ? "Looks like you checkin outside the office, welcome"
+                    : "Welcome to office",
               });
+              setSpinner(false);
               setTimeout(() => {
-                setMsgNotification({
-                  visibility: false,
+                setSuccess({
+                  state: false,
                   msg: "",
                 });
+                CalculateTrialNo("CHECKOUT");
               }, 3000);
-              break;
-          }
-        } catch (err) {
-          set_network_outage_notification(true);
-          setTimeout(() => {
-            set_network_outage_notification(false);
-          }, 3000);
-          clearTimeout();
+            }
+            break;
+          case 403:
+            setMsgNotification({
+              visibility: true,
+              msg: "You are not verified yet, contact admin",
+            });
+            setSpinner(false);
+            setTimeout(() => {
+              setMsgNotification({
+                visibility: false,
+                msg: "",
+              });
+            }, 3000);
+            break;
+          case 404:
+            setSpinner(false);
+            setMsgNotification({
+              visibility: true,
+              msg: "User not found",
+            });
+            setTimeout(() => {
+              setMsgNotification({
+                visibility: false,
+                msg: "",
+              });
+            }, 3000);
+            break;
         }
-      } else {
-        setNotification(true);
-        setError(false);
+      } catch (err) {
+        setSpinner(false);
+        set_network_outage_notification(true);
         setTimeout(() => {
-          setNotification(false);
+          set_network_outage_notification(false);
         }, 3000);
+        clearTimeout();
       }
     } else {
-      setTrialNotification(true);
+      setSpinner(false);
+      setNotification(true);
+      setError(false);
       setTimeout(() => {
-        setTrialNotification(false);
-      }, 4000);
-      clearTimeout();
+        setNotification(false);
+      }, 3000);
     }
   };
   return (
@@ -448,7 +450,7 @@ function MainScreen() {
               getUserCoordinates();
             }}
           >
-            <ScanIcon />
+            {spinner === true ? <SpinnerIcon /> : <ScanIcon />}
           </ScanButton>
           <PeopleIcon
             onClick={() => {
@@ -575,6 +577,17 @@ const QrResult = styled.div`
   color: #fff;
   text-align: center;
   margin-top: 10px;
+`;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const SpinnerIcon = styled(PiSpinner)`
+  font-size: 20px;
+  color: ivory;
+  animation: ${spin} 0.8s linear infinite;
 `;
 
 export default MainScreen;
