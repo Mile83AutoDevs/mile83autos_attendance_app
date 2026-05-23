@@ -60,7 +60,6 @@ function MainScreen() {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             };
-            console.log("USER COORDS:", coords);
             setUserCoods(coords);
             resolve(coords);
           },
@@ -188,14 +187,6 @@ function MainScreen() {
     try {
       setSpinner(true);
       scannedRef.current = true;
-      // try {
-      //   userLocation = await Promise.race([
-      //     getUserCoordinates(),
-      //     new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
-      //   ]);
-      // } catch (e) {
-      //   console.log(e);
-      // }
       let userLocation = await getUserCoordinates();
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
@@ -229,33 +220,32 @@ function MainScreen() {
           ? "checked out late"
           : "checked out early",
       };
-      console.log(payload);
-      // const response = await axios.post(SINGLE_CHECKING_URL, payload);
-      // if (response.status === 200) {
-      //   tagFirstTimerDevice(sanitizedCode);
-      //   const isCheckin = response.data.type === "checkin";
-      //   setSuccess({
-      //     state: true,
-      //     msg:
-      //       response.data.position === "outside"
-      //         ? isCheckin
-      //           ? "You checked in outside office"
-      //           : "You checked out outside office"
-      //         : isCheckin
-      //           ? checkinLate
-      //             ? "You checked in late"
-      //             : "Welcome to office"
-      //           : checkoutLate
-      //             ? "You checked out late"
-      //             : "Goodbye",
-      //   });
-      //   setTimeout(() => {
-      //     setSuccess({
-      //       state: false,
-      //       msg: "",
-      //     });
-      //   }, 3000);
-      // }
+      const response = await axios.post(SINGLE_CHECKING_URL, payload);
+      if (response.status === 200) {
+        tagFirstTimerDevice(sanitizedCode);
+        const isCheckin = response.data.type === "checkin";
+        setSuccess({
+          state: true,
+          msg:
+            response.data.position === "outside"
+              ? isCheckin
+                ? "You checked in outside office"
+                : "You checked out outside office"
+              : isCheckin
+                ? checkinLate
+                  ? "You checked in late"
+                  : "Welcome to office"
+                : checkoutLate
+                  ? "You checked out late"
+                  : "Goodbye",
+        });
+        setTimeout(() => {
+          setSuccess({
+            state: false,
+            msg: "",
+          });
+        }, 3000);
+      }
     } catch (err) {
       console.log(err);
       const status = err?.response?.status;
