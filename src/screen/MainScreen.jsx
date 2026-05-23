@@ -40,6 +40,48 @@ function MainScreen() {
   const isTesting = false;
 
   // =========================================================
+  // COORDINATES
+  // =========================================================
+  const getUserCoordinates = async () => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const permission = await navigator.permissions.query({
+          name: "geolocation",
+        });
+        console.log("LOCATION PERMISSION:", permission.state);
+        if (permission.state === "denied") {
+          alert("Location permission denied. Please enable location.");
+          reject("Permission denied");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const coords = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            console.log("USER COORDS:", coords);
+            setUserCoods(coords);
+            resolve(coords);
+          },
+          (error) => {
+            console.log("LOCATION ERROR:", error);
+            reject(error.message);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 15000,
+            maximumAge: 60000,
+          },
+        );
+      } catch (err) {
+        console.log(err);
+        reject(err);
+      }
+    });
+  };
+
+  // =========================================================
   // INIT DAILY STORAGE
   // =========================================================
   useEffect(() => {
@@ -89,6 +131,7 @@ function MainScreen() {
         alert("Cannot access camera. Please allow camera permission.");
       }
     };
+    getUserCoordinates();
     startCamera();
     return () => {
       if (animationFrameId.current)
@@ -99,38 +142,6 @@ function MainScreen() {
       scannedRef.current = false;
     };
   }, [startCameraOnLoad]);
-
-  // =========================================================
-  // COORDINATES
-  // =========================================================
-  const getUserCoordinates = async () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject("Geolocation not supported");
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          console.log("USER COORDS:", coords);
-          setUserCoods(coords);
-          resolve(coords);
-        },
-        (error) => {
-          console.log("LOCATION ERROR:", error);
-          reject(error.message);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0,
-        },
-      );
-    });
-  };
 
   //  FUCNTION TO GET CURRENT MONTH
   const getCurrentMonthKey = () => {
