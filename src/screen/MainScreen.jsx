@@ -48,7 +48,6 @@ function MainScreen() {
         const permission = await navigator.permissions.query({
           name: "geolocation",
         });
-        console.log("LOCATION PERMISSION:", permission.state);
         if (permission.state === "denied") {
           alert("Location permission denied. Please enable location.");
           reject("Permission denied");
@@ -220,6 +219,7 @@ function MainScreen() {
           ? "checked out late"
           : "checked out early",
       };
+      console.log("done");
       const response = await axios.post(SINGLE_CHECKING_URL, payload);
       if (response.status === 200) {
         tagFirstTimerDevice(sanitizedCode);
