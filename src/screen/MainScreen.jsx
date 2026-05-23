@@ -105,20 +105,6 @@ function MainScreen() {
   // =========================================================
   const getUserCoordinates = async () => {
     return new Promise((resolve, reject) => {
-      const dev_params = {
-        testing: isTesting,
-        latitude: 6.5244,
-        longitude: 3.3792,
-      };
-      if (dev_params.testing) {
-        const coords = {
-          latitude: dev_params.latitude,
-          longitude: dev_params.longitude,
-        };
-        setUserCoods(coords);
-        resolve(coords);
-        return;
-      }
       if (!navigator.geolocation) {
         reject("Geolocation not supported");
         return;
@@ -129,14 +115,18 @@ function MainScreen() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
           };
+          console.log("USER COORDS:", coords);
           setUserCoods(coords);
           resolve(coords);
         },
-        (error) => reject(error.message),
+        (error) => {
+          console.log("LOCATION ERROR:", error);
+          reject(error.message);
+        },
         {
-          enableHighAccuracy: false,
-          timeout: 30000,
-          maximumAge: 30000,
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
         },
       );
     });
@@ -187,15 +177,15 @@ function MainScreen() {
     try {
       setSpinner(true);
       scannedRef.current = true;
-      let userLocation = null;
-      try {
-        userLocation = await Promise.race([
-          getUserCoordinates(),
-          new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
-        ]);
-      } catch (e) {
-        console.log(e);
-      }
+      // try {
+      //   userLocation = await Promise.race([
+      //     getUserCoordinates(),
+      //     new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+      //   ]);
+      // } catch (e) {
+      //   console.log(e);
+      // }
+      let userLocation = await getUserCoordinates();
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
       canvas.width = videoRef.current.videoWidth;
@@ -228,32 +218,33 @@ function MainScreen() {
           ? "checked out late"
           : "checked out early",
       };
-      const response = await axios.post(SINGLE_CHECKING_URL, payload);
-      if (response.status === 200) {
-        tagFirstTimerDevice(sanitizedCode);
-        const isCheckin = response.data.type === "checkin";
-        setSuccess({
-          state: true,
-          msg:
-            response.data.position === "outside"
-              ? isCheckin
-                ? "You checked in outside office"
-                : "You checked out outside office"
-              : isCheckin
-                ? checkinLate
-                  ? "You checked in late"
-                  : "Welcome to office"
-                : checkoutLate
-                  ? "You checked out late"
-                  : "Goodbye",
-        });
-        setTimeout(() => {
-          setSuccess({
-            state: false,
-            msg: "",
-          });
-        }, 3000);
-      }
+      console.log(payload);
+      // const response = await axios.post(SINGLE_CHECKING_URL, payload);
+      // if (response.status === 200) {
+      //   tagFirstTimerDevice(sanitizedCode);
+      //   const isCheckin = response.data.type === "checkin";
+      //   setSuccess({
+      //     state: true,
+      //     msg:
+      //       response.data.position === "outside"
+      //         ? isCheckin
+      //           ? "You checked in outside office"
+      //           : "You checked out outside office"
+      //         : isCheckin
+      //           ? checkinLate
+      //             ? "You checked in late"
+      //             : "Welcome to office"
+      //           : checkoutLate
+      //             ? "You checked out late"
+      //             : "Goodbye",
+      //   });
+      //   setTimeout(() => {
+      //     setSuccess({
+      //       state: false,
+      //       msg: "",
+      //     });
+      //   }, 3000);
+      // }
     } catch (err) {
       console.log(err);
       const status = err?.response?.status;
