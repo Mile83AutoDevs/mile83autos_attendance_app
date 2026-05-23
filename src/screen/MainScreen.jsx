@@ -13,6 +13,11 @@ import Notification from "../components/Notification.jsx";
 import axios from "axios";
 import { PiSpinner } from "react-icons/pi";
 
+//  const getCurrentMonthKey = () => {
+//     const now = new Date();
+//     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+//   };
+
 function MainScreen() {
   const location = useLocation();
   const startCameraOnLoad = location.state?.startCamera || false;
@@ -20,110 +25,100 @@ function MainScreen() {
   const [openBottomSheet, setBottomSheetVisibility] = useState(false);
   const [openCheckinSheet, setCheckinSheetVisibility] = useState(false);
   const [spinner, setSpinner] = useState(false);
-  const [success, setSuccess] = useState({
-    msg: "",
-    state: false,
-  });
+  const scannedRef = useRef(false);
+  const animationFrameId = useRef(null);
+  const getTodayKey = () => new Date().toISOString().split("T")[0];
+  const [success, setSuccess] = useState({ msg: "", state: false });
   const [qrCode, setQrCode] = useState("");
   const [notification, setNotification] = useState(false);
   const [userCoods, setUserCoods] = useState({});
   const [error, setError] = useState(false);
-  const GLOBAL_LOCAL_STORAGE_TRIAL = "GLOBAL_TRIAL_OBJECT_STORE";
-  const [trialNotification, setTrialNotification] = useState(false);
-  const [network_outage_notification, set_network_outage_notification] =
-    useState(false);
   const [msgNotification, setMsgNotification] = useState({
     visibility: false,
     msg: "",
   });
+  const isTesting = false;
 
   // =========================================================
-  // CAMERA INITIALIZATION
+  // INIT DAILY STORAGE
   // =========================================================
-
   useEffect(() => {
     if (!startCameraOnLoad) return;
-    let animationFrameId;
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
-    // HANDLE TRIAL INITIALIZATION
-    const handleTrial = () => {
-      const checkIfTrialExist = localStorage.getItem(
-        GLOBAL_LOCAL_STORAGE_TRIAL,
-      );
-      if (checkIfTrialExist === null) {
-        localStorage.setItem(
-          GLOBAL_LOCAL_STORAGE_TRIAL,
-          JSON.stringify({
-            scanning_trial: 2,
-          }),
-        );
-      }
-    };
-    // START CAMERA
+    let stream = null;
 
+    //  FUNCTION TO START CAMERA
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-          },
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false,
         });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", true);
-          videoRef.current.muted = true;
-          await videoRef.current.play();
-          const scanFrame = () => {
-            if (
-              videoRef.current &&
-              videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA
-            ) {
-              canvas.width = videoRef.current.videoWidth;
-              canvas.height = videoRef.current.videoHeight;
-              context.drawImage(
-                videoRef.current,
-                0,
-                0,
-                canvas.width,
-                canvas.height,
-              );
-              const imageData = context.getImageData(
-                0,
-                0,
-                canvas.width,
-                canvas.height,
-              );
-              const code = jsQR(imageData.data, canvas.width, canvas.height);
-              if (code) {
-                setQrCode(code.data);
-              }
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", true);
+        videoRef.current.muted = true;
+        await videoRef.current.play();
+        const scanFrame = () => {
+          const video = videoRef.current;
+          if (
+            video &&
+            video.readyState === video.HAVE_ENOUGH_DATA &&
+            !scannedRef.current
+          ) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = context.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height,
+            );
+            const code = jsQR(imageData.data, canvas.width, canvas.height);
+            if (code && !scannedRef.current) {
+              setQrCode(code.data);
             }
-            animationFrameId = requestAnimationFrame(scanFrame);
-          };
-          scanFrame();
-        }
+          }
+          animationFrameId.current = requestAnimationFrame(scanFrame);
+        };
+        scanFrame();
       } catch (err) {
         console.log(err);
         alert("Cannot access camera. Please allow camera permission.");
       }
     };
     startCamera();
-    handleTrial();
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      if (animationFrameId.current)
+        cancelAnimationFrame(animationFrameId.current);
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
       }
+      scannedRef.current = false;
     };
   }, [startCameraOnLoad]);
 
   // =========================================================
-  // GET USER COORDINATES
+  // COORDINATES
   // =========================================================
-
   const getUserCoordinates = async () => {
     return new Promise((resolve, reject) => {
+      const dev_params = {
+        testing: isTesting,
+        latitude: 6.5244,
+        longitude: 3.3792,
+      };
+      if (dev_params.testing) {
+        const coords = {
+          latitude: dev_params.latitude,
+          longitude: dev_params.longitude,
+        };
+        setUserCoods(coords);
+        resolve(coords);
+        return;
+      }
       if (!navigator.geolocation) {
         reject("Geolocation not supported");
         return;
@@ -137,132 +132,70 @@ function MainScreen() {
           setUserCoods(coords);
           resolve(coords);
         },
-        (error) => {
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              reject("Location permission denied");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              reject("Position unavailable");
-              break;
-            case error.TIMEOUT:
-              reject("Location request timed out");
-              break;
-            default:
-              reject("Unknown location error");
-          }
-        },
+        (error) => reject(error.message),
         {
-          enableHighAccuracy: true,
+          enableHighAccuracy: false,
           timeout: 30000,
-          maximumAge: 60000,
+          maximumAge: 30000,
         },
       );
     });
   };
 
-  // =========================================================
-  // GET CURRENT MONTH
-  // =========================================================
-
+  //  FUCNTION TO GET CURRENT MONTH
   const getCurrentMonthKey = () => {
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    return `${year}-${month}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   };
+  const sanitizeInjectedQrCode = (code = "") => code.replace(/\/\//g, "");
 
-  // =========================================================
-  // SANITIZE QR CODE
-  // =========================================================
-  const sanitizeInjectedQrCode = (code = "") => {
-    return code.replace(/\/\//g, "");
-  };
-
-  // =========================================================
-  // DETECT LATE COMING
-  // =========================================================
+  // FUNCTION TO DETECT LATE COMING
   const DetectLateComing = (type = "CHECKIN") => {
-    const STANDARD_RESUMPTION_TIME = 10;
-    const STANDARD_CLOSING_TIME = 17;
-    const currentHour = new Date().getHours();
-    if (type === "CHECKIN") {
-      return currentHour > STANDARD_RESUMPTION_TIME ? true : false;
-    }
-    return currentHour > STANDARD_CLOSING_TIME ? true : false;
+    const hour = new Date().getHours();
+    if (type === "CHECKIN") return hour > 10;
+    return hour > 17;
   };
 
   // =========================================================
-  // ENDPOINTS
-  // =========================================================
-  const Endpoint = {
-    checkin_local: "http://localhost:5000/api/checkinStaff",
-    checkout_local: "http://localhost:5000/api/checkoutStaff",
-    checkin_production:
-      "https://mile83autos-api-backend-1.onrender.com/api/checkinStaff",
-    checkout_production:
-      "https://mile83autos-api-backend-1.onrender.com/api/checkoutStaff",
-  };
+  //  FUNCTION TO AUTOMATIC CHOOSE ENDPOINT BASED ON MODE
+  const SINGLE_CHECKING_URL = isTesting
+    ? "http://localhost:5000/api/handleChecking"
+    : "https://mile83autos-api-backend-1.onrender.com/api/handleChecking";
 
-  // =========================================================
-  // AUTO CHANGE ENDPOINT
-  // =========================================================
-  const autoChangeEndpointBasedOnTrials = (isOnProd = false) => {
-    let _GLOBAL_AUTO_ENDPOINT = "";
-    const _getTrials = localStorage.getItem(GLOBAL_LOCAL_STORAGE_TRIAL);
-    const _sanitizedTrialData = JSON.parse(_getTrials);
-    if (Number(_sanitizedTrialData["scanning_trial"]) === 2) {
-      _GLOBAL_AUTO_ENDPOINT = isOnProd
-        ? Endpoint.checkin_production
-        : Endpoint.checkin_local;
-    } else if (Number(_sanitizedTrialData["scanning_trial"]) === 1) {
-      _GLOBAL_AUTO_ENDPOINT = isOnProd
-        ? Endpoint.checkout_production
-        : Endpoint.checkout_local;
-    }
-    return _GLOBAL_AUTO_ENDPOINT;
-  };
-
-  // =========================================================
-  // CLOSE NOTIFICATION
-  // =========================================================
-  const closeNotificationBadge = () => {
-    setNotification(false);
-  };
-
-  // =========================================================
-  // UPDATE TRIAL COUNT
-  // =========================================================
-  const CalculateTrialNo = (type) => {
-    const _getTrialNo = localStorage.getItem(GLOBAL_LOCAL_STORAGE_TRIAL);
-    const _sanitizedTrialData = JSON.parse(_getTrialNo);
-    if (type === "CHECKIN") {
-      const newTrialNo = Number(_sanitizedTrialData["scanning_trial"]) - 1;
+  // FUNCTION TO TAG FIRST TIMER DEVICE
+  const tagFirstTimerDevice = (_userId = "") => {
+    const _checkFirstTimerDevice = localStorage.getItem("IS_DEVICE_ACTIVE_YET");
+    if (_checkFirstTimerDevice === null) {
       localStorage.setItem(
-        GLOBAL_LOCAL_STORAGE_TRIAL,
+        "IS_DEVICE_ACTIVE_YET",
         JSON.stringify({
-          scanning_trial: newTrialNo,
+          status: 1,
+          userId: _userId,
         }),
       );
-    } else {
-      localStorage.setItem(
-        GLOBAL_LOCAL_STORAGE_TRIAL,
-        JSON.stringify({
-          scanning_trial: 2,
-        }),
-      );
+    } else if (_checkFirstTimerDevice != null) {
+      return;
     }
   };
+  // --------------------------------
 
   // =========================================================
   // SCAN QR CODE
   // =========================================================
   const scanQRCode = async () => {
-    if (!videoRef.current) return;
+    if (!videoRef.current || spinner) return;
     try {
       setSpinner(true);
-      // GET USER LOCATION
-      const userLocation = await getUserCoordinates();
+      scannedRef.current = true;
+      let userLocation = null;
+      try {
+        userLocation = await Promise.race([
+          getUserCoordinates(),
+          new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+        ]);
+      } catch (e) {
+        console.log(e);
+      }
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
       canvas.width = videoRef.current.videoWidth;
@@ -270,144 +203,96 @@ function MainScreen() {
       context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, canvas.width, canvas.height);
-      // NO QR DETECTED
       if (!code) {
-        setSpinner(false);
         setNotification(true);
-        setError(false);
         setTimeout(() => {
           setNotification(false);
-        }, 3000);
+        }, 2500);
+        scannedRef.current = false;
         return;
       }
-      // SANITIZE QR
       const sanitizedCode = sanitizeInjectedQrCode(code.data);
-      setQrCode(sanitizedCode);
-      // PAYLOAD
+      const checkinLate = DetectLateComing("CHECKIN");
+      const checkoutLate = DetectLateComing("CHECKOUT");
       const payload = {
         virtual_serial_id: sanitizedCode,
         date: new Date().toLocaleDateString(),
-        checkInTime: new Date().toLocaleTimeString(),
-        checkInDescription: `came ${
-          DetectLateComing() ? "late" : "early"
-        } to work`,
-        checkOutTime: new Date().toLocaleTimeString(),
-        checkOutDescription: `checkedout ${
-          DetectLateComing("CHECKOUT") ? "late" : "early"
-        } today`,
         month: getCurrentMonthKey(),
-        position_logging: {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-        },
+        position_logging: userLocation || null,
+        checkInTime: new Date().toLocaleTimeString(),
+        checkOutTime: new Date().toLocaleTimeString(),
+        checkInDescription: checkinLate
+          ? "came late to work"
+          : "came early to work",
+        checkOutDescription: checkoutLate
+          ? "checked out late"
+          : "checked out early",
       };
-      // SEND REQUEST
-      const response = await axios.post(
-        autoChangeEndpointBasedOnTrials(true),
-        payload,
-      );
-      // HANDLE RESPONSE
-      switch (response.status) {
-        case 200:
-          if (response.data.type === "checkin") {
-            setSuccess({
-              state: true,
-
-              msg:
-                response.data.position === "outside"
-                  ? "Looks like you checked in outside office"
-                  : "Welcome to office",
-            });
-
-            setTimeout(() => {
-              setSuccess({
-                state: false,
-                msg: "",
-              });
-
-              CalculateTrialNo("CHECKIN");
-            }, 3000);
-          } else if (response.data.type === "checkout") {
-            setSuccess({
-              state: true,
-
-              msg:
-                response.data.position === "outside"
-                  ? "Looks like you checked out outside office"
-                  : "Goodbye from office",
-            });
-
-            setTimeout(() => {
-              setSuccess({
-                state: false,
-                msg: "",
-              });
-
-              CalculateTrialNo("CHECKOUT");
-            }, 3000);
-          }
-
-          break;
-
-        case 403:
-          setMsgNotification({
-            visibility: true,
-            msg: "You are not verified yet",
+      const response = await axios.post(SINGLE_CHECKING_URL, payload);
+      if (response.status === 200) {
+        tagFirstTimerDevice(sanitizedCode);
+        const isCheckin = response.data.type === "checkin";
+        setSuccess({
+          state: true,
+          msg:
+            response.data.position === "outside"
+              ? isCheckin
+                ? "You checked in outside office"
+                : "You checked out outside office"
+              : isCheckin
+                ? checkinLate
+                  ? "You checked in late"
+                  : "Welcome to office"
+                : checkoutLate
+                  ? "You checked out late"
+                  : "Goodbye",
+        });
+        setTimeout(() => {
+          setSuccess({
+            state: false,
+            msg: "",
           });
-
-          break;
-
-        case 404:
-          setMsgNotification({
-            visibility: true,
-            msg: "User not found",
-          });
-
-          break;
-
-        default:
-          setMsgNotification({
-            visibility: true,
-            msg: "Something went wrong",
-          });
+        }, 3000);
       }
     } catch (err) {
       console.log(err);
-
-      set_network_outage_notification(true);
-
-      setTimeout(() => {
-        set_network_outage_notification(false);
-      }, 3000);
-
-      setMsgNotification({
-        visibility: true,
-        msg: err?.message || String(err),
-      });
-
-      setTimeout(() => {
+      const status = err?.response?.status;
+      if (status === 404) {
         setMsgNotification({
-          visibility: false,
-          msg: "",
+          visibility: true,
+          msg: "User not found",
         });
-      }, 3000);
+      } else if (status === 403) {
+        setMsgNotification({
+          visibility: true,
+          msg: "Not approved",
+        });
+      } else if (status === 402) {
+        setMsgNotification({
+          visibility: true,
+          msg: "Attendance already completed today",
+        });
+      } else {
+        setMsgNotification({
+          visibility: true,
+          msg: "Something went wrong",
+        });
+      }
     } finally {
-      setSpinner(false);
+      scannedRef.current = false;
+      setTimeout(() => {
+        setSpinner(false);
+      }, 800);
     }
   };
-
+  // ================= UI (UNCHANGED) =================
   return (
     <>
       {msgNotification.visibility && (
         <Notification
           title="Notification"
           description={msgNotification.msg}
-          onClose={() => {
-            setMsgNotification({
-              visibility: false,
-              msg: "",
-            });
-          }}
+          onClose={() => setMsgNotification({ visibility: false, msg: "" })}
         />
       )}
 
@@ -415,83 +300,42 @@ function MainScreen() {
         <Notification
           title="Notification"
           description={error ? "Invalid Code" : "No Code Detected"}
-          onClose={() => {
-            closeNotificationBadge();
-          }}
-        />
-      )}
-
-      {trialNotification && (
-        <Notification
-          title="Notification"
-          description="You have scanned twice today"
-          onClose={() => {
-            setTrialNotification(false);
-          }}
-        />
-      )}
-
-      {network_outage_notification && (
-        <Notification
-          title="Notification"
-          description="Something went wrong or no internet"
-          onClose={() => {
-            set_network_outage_notification(false);
-          }}
+          onClose={() => setNotification(false)}
         />
       )}
 
       {success.state && <SuccessComponent msg={success.msg} />}
 
       {openBottomSheet && (
-        <HistoryModal
-          onClose={() => {
-            setBottomSheetVisibility(false);
-          }}
-        />
+        <HistoryModal onClose={() => setBottomSheetVisibility(false)} />
       )}
 
       {openCheckinSheet && (
-        <CheckingModal
-          onExit={() => {
-            setCheckinSheetVisibility(false);
-          }}
-        />
+        <CheckingModal onExit={() => setCheckinSheetVisibility(false)} />
       )}
 
       <Container>
         <CameraContainer>
-          <VideoCamera ref={videoRef} />
-
+          <VideoCamera ref={videoRef} autoPlay playsInline muted />
           <EyeIcon />
-
           <ShimmerOverlay />
         </CameraContainer>
 
         <ControlPanelContainer>
-          <HistoryIcon
-            onClick={() => {
-              setBottomSheetVisibility(true);
-            }}
-          />
+          <HistoryIcon onClick={() => setBottomSheetVisibility(true)} />
 
           <ScanButton onClick={scanQRCode}>
             {spinner ? <SpinnerIcon /> : <ScanIcon />}
           </ScanButton>
 
-          <PeopleIcon
-            onClick={() => {
-              setCheckinSheetVisibility(true);
-            }}
-          />
+          <PeopleIcon onClick={() => setCheckinSheetVisibility(true)} />
         </ControlPanelContainer>
       </Container>
     </>
   );
 }
 
-/* ================= STYLES ================= */
-
+/* styles unchanged */
 const Container = styled.div`
   height: 100vh;
   padding: 20px;
@@ -501,13 +345,8 @@ const Container = styled.div`
 `;
 
 const shimmer = keyframes`
-  0% {
-    background-position: -400px 0;
-  }
-
-  100% {
-    background-position: 400px 0;
-  }
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 `;
 
 const CameraContainer = styled.div`
@@ -533,14 +372,12 @@ const ShimmerOverlay = styled.div`
   left: -100%;
   width: 200%;
   height: 100%;
-
   background: linear-gradient(
     90deg,
     rgba(0, 0, 0, 0) 0%,
     rgba(255, 255, 255, 0.12) 50%,
     rgba(0, 0, 0, 0) 100%
   );
-
   animation: ${shimmer} 1.5s infinite linear;
 `;
 
@@ -570,56 +407,29 @@ const ScanButton = styled.button`
   width: 65px;
   height: 65px;
   border-radius: 50%;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border: none;
-`;
-
-const eyeBlink = keyframes`
-  0%, 92%, 100% {
-    transform: translate(-50%, -50%) scaleY(1);
-  }
-
-  95% {
-    transform: translate(-50%, -50%) scaleY(0.1);
-  }
-
-  97% {
-    transform: translate(-50%, -50%) scaleY(1);
-  }
 `;
 
 const EyeIcon = styled(IoEyeSharp)`
   position: absolute;
   top: 50%;
   left: 50%;
-
   font-size: 45px;
-
   color: rgba(255, 255, 255, 0.4);
-
   z-index: 3;
-
-  animation: ${eyeBlink} 3s infinite ease-in-out;
 `;
 
 const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const SpinnerIcon = styled(PiSpinner)`
   font-size: 22px;
   color: ivory;
-
   animation: ${spin} 0.8s linear infinite;
 `;
 

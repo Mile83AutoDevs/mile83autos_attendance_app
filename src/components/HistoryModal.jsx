@@ -11,19 +11,28 @@ function HistoryModal({ onClose }) {
   const [data, setData] = useState([]);
   const [spinner, setSpinner] = useState(false);
   const [connection, setConnection] = useState(true);
+
+  // tabs
+  const [tab, setTab] = useState("today");
+
   // define endpoint
   const endpoint = {
     development: false,
-    local: "http://localhost:5000/api/getAllAttendanceByMonthBasedOnId",
-    production:
-      "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByMonthBasedOnId",
+    getAttendanceBasedOnMonth: {
+      local: "http://localhost:5000/api/getAllAttendanceByMonthBasedOnId",
+      production:
+        "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByMonthBasedOnId",
+    },
+    getAttendanceBasedOnCurrentDate: {
+      local: "http://localhost:5000/api/getAllAttendanceByCurrentDateBasedOnId",
+      production:
+        "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByCurrentDateBasedOnId",
+    },
   };
-  const getUserSerialId = localStorage.getItem("object_data_storage");
-  const sanitizeData = getUserSerialId ? atob(getUserSerialId) : null;
 
-  useEffect(() => {
-    getUserData();
-  }, []);
+  const getUserSerialId = localStorage.getItem("object_data_storage");
+
+  const _checkDeviceActivation = localStorage.getItem("IS_DEVICE_ACTIVE_YET");
 
   //  function to calculate current month
   function getCurrentMonthKey() {
@@ -33,54 +42,63 @@ function HistoryModal({ onClose }) {
     return `${year}-${month}`;
   }
 
-  //  define payload;
+  // define payload
   const payload = {
-    virtual_serial_id: JSON.parse(sanitizeData),
+    virtual_serial_id: JSON.parse(_checkDeviceActivation || "{}")["userId"],
     month: getCurrentMonthKey(),
+    date: new Date().toLocaleDateString(),
   };
 
-  // function to get user attendance history based on the particular month user is present;
+  // ON LOAD MODAL GET USER HISTORY
+  useEffect(() => {
+    getUserData();
+  }, [tab]);
+
+  // function to get user attendance history
   const getUserData = async () => {
-    if (!sanitizeData) {
+    if (_checkDeviceActivation === null) {
       setConnection(false);
-      return null;
+      return;
     }
+
     try {
-      const response = await axios.post(
-        endpoint.development === true ? endpoint.local : endpoint.production,
-        payload,
-      );
-      if (response) {
-        return response.data.data == null
-          ? setData([])
-          : setData(response.data.data);
+      setSpinner(true);
+
+      const selectedEndpoint =
+        tab === "today"
+          ? endpoint["development"] === true
+            ? endpoint["getAttendanceBasedOnCurrentDate"]["local"]
+            : endpoint["getAttendanceBasedOnCurrentDate"]["production"]
+          : endpoint["development"] === true
+            ? endpoint["getAttendanceBasedOnMonth"]["local"]
+            : endpoint["getAttendanceBasedOnMonth"]["production"];
+
+      const response = await axios.post(selectedEndpoint, payload);
+      console.log(response.data.data);
+      if (response?.data?.data) {
+        setData(response.data.data);
       } else {
-        setConnection(false);
+        setData([]);
       }
+
+      setConnection(true);
     } catch (err) {
-      setSpinner(false);
       setConnection(false);
+      setData([]);
+    } finally {
+      setSpinner(false);
     }
   };
 
-  //  function to handle data refresh
+  // refresh
   const handleDataRefresh = async () => {
     try {
       setSpinner(true);
-      const res = await getUserData();
-      if (res) {
-        setSpinner(false);
-        setConnection(true);
-      } else if (!res) {
-        setTimeout(() => {
-          setSpinner(false);
-        }, 2000);
-      }
+      await getUserData();
     } catch (err) {
       setConnection(false);
-      setTimeout(() => {
-        setSpinner(false);
-      }, 3000);
+    } finally {
+      setSpinner(false);
     }
   };
 
@@ -91,75 +109,99 @@ function HistoryModal({ onClose }) {
           <Title>Recent Activity</Title>
           <Closeicon onClick={onClose} />
         </Header>
+
+        {/* TAB SECTION */}
+        <TabContainer>
+          <TabButton active={tab === "today"} onClick={() => setTab("today")}>
+            Today
+          </TabButton>
+
+          <TabButton active={tab === "month"} onClick={() => setTab("month")}>
+            This Month
+          </TabButton>
+        </TabContainer>
+
         {/* Body container */}
         <BodyContainer>
           <ContentContainer>
             <>
               {connection === true ? (
                 <>
-                  {data.length === 0 ? (
+                  {spinner === true ? (
                     <>
-                      <NoDataParentContainer>
-                        <EmptyIcon />
-                        <NoDataText>No data at the moment</NoDataText>
-                      </NoDataParentContainer>
+                      <SpinnerContainer>
+                        <SpinnerIcon />
+                      </SpinnerContainer>
                     </>
                   ) : (
                     <>
-                      {data.map((value, index) => (
+                      {data.length === 0 ? (
                         <>
-                          {value.checkinStatus === true && (
-                            <>
-                              <HistoryComponent
-                                key={value._id}
-                                description={`you ${value.checkInDescription}`}
-                                point={value.point}
-                                time={value.checkInTime}
-                              />
-                            </>
-                          )}
-                          {value.checkoutStatus === true && (
-                            <>
-                              <HistoryComponent
-                                key={value._id}
-                                description={`you ${value.checkOutDescription}`}
-                                point={value.point}
-                                time={value.checkOutTime}
-                              />
-                            </>
-                          )}
+                          <NoDataParentContainer>
+                            <EmptyIcon />
+                            <NoDataText>No data at the moment</NoDataText>
+                          </NoDataParentContainer>
                         </>
-                      ))}
+                      ) : (
+                        <>
+                          {data.map((value) => (
+                            <ActivityCard key={value._id}>
+                              {/* DATE */}
+                              <ActivityDate>{value.date}</ActivityDate>
+                              {/* CHECK IN */}
+                              {value.checkinStatus === true && (
+                                <HistoryComponent
+                                  checkin={true}
+                                  description={`You ${value.checkInDescription}`}
+                                  time={value.checkInTime}
+                                  position={
+                                    value?.positionLogging?.checkinPosition
+                                  }
+                                />
+                              )}
+                              {/* LINE */}
+                              {value.checkinStatus && value.checkoutStatus && (
+                                <Divider />
+                              )}
+                              {/* CHECK OUT */}
+                              {value.checkoutStatus === true && (
+                                <HistoryComponent
+                                  checkin={false}
+                                  description={`You ${value.checkOutDescription}`}
+                                  time={value.checkOutTime}
+                                  position={
+                                    value?.positionLogging?.checkoutPosition
+                                  }
+                                />
+                              )}
+                            </ActivityCard>
+                          ))}
+                        </>
+                      )}
                     </>
                   )}
                 </>
               ) : (
                 <>
-                  {spinner === true ? (
-                    <>
-                      <SpinnerIcon />
-                    </>
-                  ) : (
-                    <>
-                      <NoInternetParentContainer>
-                        <NoInternetTextContainer>
-                          <RefreshIcon />
-                          <NoInternetText>
-                            {sanitizeData === null
-                              ? "you have not started using your device to checkin"
-                              : "Could not fetch data"}
-                          </NoInternetText>
-                        </NoInternetTextContainer>
-                        <NoInternetButton
-                          onClick={() => {
-                            handleDataRefresh();
-                          }}
-                        >
-                          Refresh
-                        </NoInternetButton>
-                      </NoInternetParentContainer>
-                    </>
-                  )}
+                  <NoInternetParentContainer>
+                    <NoInternetTextContainer>
+                      <RefreshIcon />
+
+                      <NoInternetText>
+                        {_checkDeviceActivation === null
+                          ? "you have not started using your device to checkin"
+                          : "Could not fetch data"}
+                      </NoInternetText>
+                    </NoInternetTextContainer>
+
+                    <NoInternetButton
+                      onClick={() => {
+                        handleDataRefresh();
+                      }}
+                    >
+                      Refresh
+                    </NoInternetButton>
+                  </NoInternetParentContainer>
                 </>
               )}
             </>
@@ -173,12 +215,6 @@ function HistoryModal({ onClose }) {
 export default HistoryModal;
 
 /* ---------------- Animations ---------------- */
-const ContentContainer = styled.div`
-  display: flex;
-  padding-top: 25px;
-  flex-direction: column;
-  gap: 25px;
-`;
 
 const slideUp = keyframes`
   from {
@@ -186,6 +222,15 @@ const slideUp = keyframes`
   }
   to {
     transform: translateY(0%);
+  }
+`;
+
+const rotate = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 `;
 
@@ -199,7 +244,7 @@ const Container = styled.div`
   -webkit-backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
-  align-items: flex-end; /* push bottom sheet to bottom */
+  align-items: flex-end;
   z-index: 9999;
 `;
 
@@ -232,9 +277,40 @@ const Title = styled.h3`
   font-weight: 700;
 `;
 
+const TabContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  height: 45px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+  background: ${(props) =>
+    props.active ? "var(--primary-bg-theme)" : "#f1f1f1"};
+  color: "#111";
+  &:hover {
+    transform: scale(0.97);
+  }
+`;
+
 const BodyContainer = styled.div`
   flex: 1;
   overflow-y: auto;
+`;
+
+const ContentContainer = styled.div`
+  display: flex;
+  padding-top: 10px;
+  flex-direction: column;
+  gap: 25px;
+  align-items: center;
 `;
 
 const NoInternetParentContainer = styled.div`
@@ -245,10 +321,12 @@ const NoInternetParentContainer = styled.div`
   gap: 30px;
   flex-direction: column;
 `;
+
 const NoInternetText = styled.h3`
   font-size: 15px;
   width: 150px;
 `;
+
 const NoInternetButton = styled.button`
   padding: 10px;
   font-size: 14px;
@@ -258,13 +336,16 @@ const NoInternetButton = styled.button`
   transition: linear 100ms;
   cursor: pointer;
   background: var(--primary-bg-theme);
+
   &:hover {
     transform: scale(0.95);
   }
 `;
+
 const RefreshIcon = styled(IoRefresh)`
   font-size: 40px;
 `;
+
 const NoInternetTextContainer = styled.div`
   display: flex;
   text-align: center;
@@ -287,21 +368,44 @@ const NoDataParentContainer = styled.div`
 const EmptyIcon = styled(TbMoodEmpty)`
   font-size: 40px;
 `;
+
 const NoDataText = styled.h3`
   font-size: 15px;
   width: 150px;
 `;
 
-const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+const SpinnerContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 100px;
 `;
 
 const SpinnerIcon = styled(ImSpinner3)`
-  font-size: 20px;
+  font-size: 22px;
   animation: ${rotate} 1s linear infinite;
+`;
+
+const ActivityCard = styled.div`
+  background: #fafafa;
+  border: 1px solid #f1f1f1;
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  width: 90%;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
+`;
+
+const ActivityDate = styled.h4`
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+`;
+
+const Divider = styled.div`
+  width: 100%;
+  height: 1px;
+  background: #ececec;
 `;

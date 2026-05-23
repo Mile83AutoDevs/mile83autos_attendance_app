@@ -13,15 +13,9 @@ function RegisterScreen() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [success, setSuccess] = useState(false);
-  const [params, setParams] = useState({});
   const isValid = fullName.trim() !== "" && phone.trim() !== "";
   const [notificationReveal, setNotificationReveal] = useState(false);
   const [error, setError] = useState(false);
-  //  define global data params ;
-  const Global_data_template = {
-    virtual_serial_no: "",
-  };
-
   //  fucntion to handle data params activities
   const manageParams = (type, params = {}) => {
     if (type === "STORE_DATA") {

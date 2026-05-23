@@ -1,113 +1,112 @@
 import styled, { keyframes } from "styled-components";
-import { IoClose } from "react-icons/io5";
-import { useState, useRef } from "react";
+import { IoClose, IoRefresh } from "react-icons/io5";
+import { useState, useRef, useEffect } from "react";
 import CheckinComponent from "./CheckinComponent";
 import axios from "axios";
-import { useEffect } from "react";
-import { IoRefresh } from "react-icons/io5";
 import { TbMoodEmpty } from "react-icons/tb";
 import { ImSpinner3 } from "react-icons/im";
 
 function CheckingModal({ onExit }) {
-  const [position, setPosition] = useState("checkin");
+  const [position, setPosition] = useState("checkin"); // checkin | checkout
+  const [timeTab, setTimeTab] = useState("today"); // today | month
+
   const [dragY, setDragY] = useState(0);
   const startY = useRef(0);
   const startX = useRef(0);
   const sheetRef = useRef(null);
+
   const [connection, setConnection] = useState(true);
   const [data, setData] = useState([]);
   const [spinner, setSpinner] = useState(false);
 
-  //  define endpoint
   const endpoints = {
-    developmemt: false,
-    local: "http://localhost:5000/api/getAllAttendanceByDate",
-    production:
-      "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByDate",
+    development: false,
+    getAllAttendanceByMonth: {
+      local: "http://localhost:5000/api/getAllAttendanceByMonth",
+      production:
+        "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByMonth",
+    },
+
+    getAllAttendanceByCurrentDate: {
+      local: "http://localhost:5000/api/getAllAttendanceByDate",
+      production:
+        "https://mile83autos-api-backend-1.onrender.com/api/getAllAttendanceByDate",
+    },
   };
 
-  //  on checkmodal load call api data ;
-  useEffect(() => {
-    getDataByDate();
-  }, []);
+  //  function to calculate current month
+  function getCurrentMonthKey() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  }
 
-  //  function to get data from server by date ;
-  const getDataByDate = async () => {
-    try {
-      const todayDate = new Date().toLocaleDateString("en-CA");
-      const payload = { date: todayDate };
-      const response = await axios.post(
-        endpoints.developmemt ? endpoints.local : endpoints.production,
-        payload,
-      );
-      if (response.data.data === null) {
-        return setData([]);
-      } else {
-        return setData(response.data.data);
-      }
-    } catch (err) {
-      setConnection(false);
-    }
-  };
-
-  //  function to handle button click to refresh data from server ;
-  const handleDataRefresh = async () => {
+  /* ---------------- FETCH DATA ---------------- */
+  const getData = async () => {
     try {
       setSpinner(true);
-      const res = await getDataByDate();
-      if (res) {
-        setSpinner(false);
-        setConnection(true);
-        console.log(res);
-      } else if (!res) {
-        setTimeout(() => {
-          setSpinner(false);
-        }, 2000);
-      }
+      const todayDate = new Date().toLocaleDateString();
+      const payload = {
+        date: todayDate,
+        month: getCurrentMonthKey(),
+      };
+
+      const endpoint =
+        timeTab === "today"
+          ? endpoints.development
+            ? endpoints.getAllAttendanceByCurrentDate.local
+            : endpoints.getAllAttendanceByCurrentDate.production
+          : endpoints.development
+            ? endpoints.getAllAttendanceByMonth.local
+            : endpoints.getAllAttendanceByMonth.production;
+
+      const response = await axios.post(endpoint, payload);
+
+      setData(response?.data?.data || []);
+      setConnection(true);
     } catch (err) {
       setConnection(false);
-      setTimeout(() => {
-        setSpinner(false);
-      }, 2000);
+      setData([]);
+    } finally {
+      setSpinner(false);
     }
   };
 
-  /* ---------------- Drag Down To Close ---------------- */
+  useEffect(() => {
+    getData();
+  }, [timeTab]);
 
+  const handleRefresh = () => getData();
+
+  /* ---------------- DRAG ---------------- */
   const handleTouchStart = (e) => {
     startY.current = e.touches[0].clientY;
     startX.current = e.touches[0].clientX;
   };
 
   const handleTouchMove = (e) => {
-    const currentY = e.touches[0].clientY;
-    const diffY = currentY - startY.current;
-
-    if (diffY > 0) {
-      setDragY(diffY);
-    }
+    const diffY = e.touches[0].clientY - startY.current;
+    if (diffY > 0) setDragY(diffY);
   };
 
   const handleTouchEnd = (e) => {
-    const endX = e.changedTouches[0].clientX;
-    const diffX = endX - startX.current;
+    const diffX = e.changedTouches[0].clientX - startX.current;
 
-    // Swipe Left / Right
     if (Math.abs(diffX) > 50) {
-      if (diffX < 0) {
-        setPosition("checkout");
-      } else {
-        setPosition("checkin");
-      }
+      setPosition(diffX < 0 ? "checkout" : "checkin");
     }
 
-    // Drag Down To Close
-    if (dragY > 150) {
-      onExit();
-    } else {
-      setDragY(0);
-    }
+    if (dragY > 150) onExit();
+    else setDragY(0);
   };
+
+  /* ---------------- FILTER ---------------- */
+  const filteredData = data.filter((item) =>
+    position === "checkin"
+      ? item.checkinStatus === true
+      : item.checkoutStatus === true,
+  );
 
   return (
     <Container onClick={onExit}>
@@ -122,107 +121,91 @@ function CheckingModal({ onExit }) {
         <DragIndicator />
 
         <Header>
-          <Title>Checkins</Title>
+          <Title>Attendance</Title>
           <Closeicon onClick={onExit} />
         </Header>
 
+        {/* TOP TABS */}
+        <HeaderNavigatorContainer>
+          <Slider active={position} />
+
+          <NavButton
+            active={position === "checkin"}
+            onClick={() => setPosition("checkin")}
+          >
+            Checkin
+          </NavButton>
+
+          <NavButton
+            active={position === "checkout"}
+            onClick={() => setPosition("checkout")}
+          >
+            Checkout
+          </NavButton>
+        </HeaderNavigatorContainer>
+
+        {/* SECOND TABS */}
+        <TabRow>
+          <TabButton
+            active={timeTab === "today"}
+            onClick={() => setTimeTab("today")}
+          >
+            Today
+          </TabButton>
+
+          <TabButton
+            active={timeTab === "month"}
+            onClick={() => setTimeTab("month")}
+          >
+            This Month
+          </TabButton>
+        </TabRow>
+
         <BodyContainer>
-          <HeaderNavigatorContainer>
-            <Slider active={position} />
+          {spinner ? (
+            <SpinnerContainer>
+              <SpinnerIcon />
+            </SpinnerContainer>
+          ) : !connection ? (
+            <NoInternetParentContainer>
+              <NoInternetTextContainer>
+                <RefreshIcon />
+                <NoInternetText>No Internet Connection</NoInternetText>
+              </NoInternetTextContainer>
 
-            <NavButton
-              active={position === "checkin"}
-              onClick={() => setPosition("checkin")}
-            >
-              Checkin
-            </NavButton>
-
-            <NavButton
-              active={position === "checkout"}
-              onClick={() => setPosition("checkout")}
-            >
-              Checkout
-            </NavButton>
-          </HeaderNavigatorContainer>
-          {connection === false ? (
-            <>
-              <NoInternetParentContainer>
-                {spinner === false ? (
-                  <>
-                    <NoInternetTextContainer>
-                      <RefreshIcon />
-                      <NoInternetText>
-                        No Internet,click the refresh button
-                      </NoInternetText>
-                    </NoInternetTextContainer>
-                    <NoInternetButton
-                      onClick={() => {
-                        handleDataRefresh();
-                      }}
-                    >
-                      Refresh
-                    </NoInternetButton>
-                  </>
-                ) : (
-                  <>
-                    <SpinnerIcon />
-                  </>
-                )}
-              </NoInternetParentContainer>
-            </>
+              <NoInternetButton onClick={handleRefresh}>
+                Refresh
+              </NoInternetButton>
+            </NoInternetParentContainer>
+          ) : filteredData.length === 0 ? (
+            <NoDataParentContainer>
+              <EmptyIcon />
+              <NoDataText>
+                {position === "checkin"
+                  ? "No checkins yet"
+                  : "No checkouts yet"}
+              </NoDataText>
+            </NoDataParentContainer>
           ) : (
-            <>
-              {data.length === 0 ? (
-                <>
-                  <NoDataParentContainer>
-                    <EmptyIcon />
-                    <NoDataText>
-                      {position === "checkin"
-                        ? "No Staff have checked-in yet "
-                        : "No Staff have checked-out yet"}
-                    </NoDataText>
-                  </NoDataParentContainer>
-                </>
-              ) : (
-                <>
-                  {position === "checkin" ? (
-                    <>
-                      <ContentContainer>
-                        {data.map(
-                          (value, index) =>
-                            data.checkinStatus === true && (
-                              <>
-                                <CheckinComponent
-                                  index={value._id}
-                                  Name={value.staffName}
-                                  Description={`${value.staffName}${value.checkInDescription}`}
-                                  Time={value.checkInTime}
-                                />
-                              </>
-                            ),
-                        )}
-                      </ContentContainer>
-                    </>
-                  ) : (
-                    <>
-                      {data.map(
-                        (value, index) =>
-                          data.checkoutStatus === true && (
-                            <>
-                              <CheckinComponent
-                                index={value._id}
-                                Name={value.staffName}
-                                Description={`${value.staffName}${value.checkOutDescription}`}
-                                Time={value.checkOutTime}
-                              />
-                            </>
-                          ),
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </>
+            <ContentContainer>
+              {filteredData.map((value) => (
+                <CheckinComponent
+                  key={value._id}
+                  type={position}
+                  Name={value.staffName}
+                  Description={
+                    position === "checkin"
+                      ? value.checkInDescription
+                      : value.checkOutDescription
+                  }
+                  Time={
+                    position === "checkin"
+                      ? value.checkInTime
+                      : value.checkOutTime
+                  }
+                />
+              ))}
+            </ContentContainer>
           )}
         </BodyContainer>
       </SubContainer>
@@ -324,7 +307,7 @@ const Slider = styled.div`
   height: 45px;
   background: var(--primary-bg-theme);
   border-radius: 100px;
-  transition: all 0.3s ease;
+  transition: all 0.1s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -342,7 +325,7 @@ const NavButton = styled.button`
   cursor: pointer;
   z-index: 2;
   color: ${(props) => (props.active ? "black" : "#555")};
-  transition: color 0.3s ease;
+  transition: color 0.1s ease;
   text-align: center;
 `;
 
@@ -415,4 +398,27 @@ const SpinnerIcon = styled(ImSpinner3)`
   animation: ${rotate} 1s linear infinite;
 `;
 
+const TabRow = styled.div`
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: ${(p) => (p.active ? "#111" : "#f1f1f1")};
+  color: ${(p) => (p.active ? "#fff" : "#444")};
+`;
+const SpinnerContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 80px;
+`;
 const RevealContainer = styled.div``;
