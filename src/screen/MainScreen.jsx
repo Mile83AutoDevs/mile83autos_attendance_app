@@ -219,7 +219,6 @@ function MainScreen() {
           ? "checked out late"
           : "checked out early",
       };
-      console.log("done");
       const response = await axios.post(SINGLE_CHECKING_URL, payload);
       if (response.status === 200) {
         tagFirstTimerDevice(sanitizedCode);
